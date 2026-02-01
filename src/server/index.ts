@@ -1,311 +1,305 @@
 #!/usr/bin/env node
+/**
+ * Simple SQLite MCP Server
+ * Provides MCP tools for SQLite database operations via stdio
+ */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import Database from 'better-sqlite3';
-import { join } from 'path';
-import { existsSync } from 'fs';
 
-// MCP Server implementation for SQLite
-class SQLiteMCPServer {
-  private server: Server;
-  private db: Database.Database | null = null;
-  private dbPath: string = '';
+// Simple connection manager - one DB at a time
+let db: Database.Database | null = null;
+let currentDbPath: string | null = null;
 
-  constructor() {
-    this.server = new Server(
-      {
-        name: 'sqlite-mcp-server',
-        version: '1.0.0',
-      },
-      {
-        capabilities: {
-          tools: {},
+// Define MCP tools
+const TOOLS: Tool[] = [
+  {
+    name: 'sqlite_connect',
+    description: 'Connect to a SQLite database file (creates if not exists)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        dbPath: {
+          type: 'string',
+          description: 'Path to the SQLite database file',
         },
-      }
-    );
+      },
+      required: ['dbPath'],
+    },
+  },
+  {
+    name: 'sqlite_query',
+    description: 'Execute a SELECT query (read-only)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sql: {
+          type: 'string',
+          description: 'SELECT SQL query to execute',
+        },
+      },
+      required: ['sql'],
+    },
+  },
+  {
+    name: 'sqlite_execute',
+    description: 'Execute INSERT, UPDATE, DELETE, CREATE, etc. (modifies data)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sql: {
+          type: 'string',
+          description: 'SQL statement to execute (non-SELECT)',
+        },
+      },
+      required: ['sql'],
+    },
+  },
+  {
+    name: 'sqlite_tables',
+    description: 'List all tables in the current database',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'sqlite_schema',
+    description: 'Get schema information for a specific table',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableName: {
+          type: 'string',
+          description: 'Name of the table',
+        },
+      },
+      required: ['tableName'],
+    },
+  },
+];
 
-    this.setupHandlers();
+// Create MCP server
+const server = new Server(
+  {
+    name: 'sqlite-mcp-server',
+    version: '1.0.0',
+  },
+  {
+    capabilities: {
+      tools: {},
+    },
   }
+);
 
-  private setupHandlers() {
-    // List available tools
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return {
-        tools: [
-          {
-            name: 'sqlite_connect',
-            description: 'Connect to a SQLite database file. Creates a new database if it does not exist.',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                dbPath: {
-                  type: 'string',
-                  description: 'Path to the SQLite database file',
-                },
-              },
-              required: ['dbPath'],
-            },
-          },
-          {
-            name: 'sqlite_query',
-            description: 'Execute a SQL query on the connected database. Returns results as JSON.',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                sql: {
-                  type: 'string',
-                  description: 'SQL query to execute (SELECT statements preferred)',
-                },
-              },
-              required: ['sql'],
-            },
-          },
-          {
-            name: 'sqlite_execute',
-            description: 'Execute a SQL statement that modifies data (INSERT, UPDATE, DELETE, CREATE, etc.)',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                sql: {
-                  type: 'string',
-                  description: 'SQL statement to execute',
-                },
-              },
-              required: ['sql'],
-            },
-          },
-          {
-            name: 'sqlite_tables',
-            description: 'List all tables in the current database',
-            inputSchema: {
-              type: 'object',
-              properties: {},
-            },
-          },
-          {
-            name: 'sqlite_schema',
-            description: 'Get the schema (columns and types) for a specific table',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                tableName: {
-                  type: 'string',
-                  description: 'Name of the table to get schema for',
-                },
-              },
-              required: ['tableName'],
-            },
-          },
-        ],
-      };
-    });
+// Handle list tools request
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return { tools: TOOLS };
+});
 
-    // Handle tool calls
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
+// Handle tool execution
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
 
-      try {
-        switch (name) {
-          case 'sqlite_connect':
-            return await this.handleConnect(args as { dbPath: string });
-
-          case 'sqlite_query':
-            return await this.handleQuery(args as { sql: string });
-
-          case 'sqlite_execute':
-            return await this.handleExecute(args as { sql: string });
-
-          case 'sqlite_tables':
-            return await this.handleTables();
-
-          case 'sqlite_schema':
-            return await this.handleSchema(args as { tableName: string });
-
-          default:
-            throw new Error(`Unknown tool: ${name}`);
+  try {
+    switch (name) {
+      case 'sqlite_connect': {
+        const dbPath = args?.dbPath as string;
+        if (!dbPath) {
+          throw new Error('dbPath is required');
         }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        // Close existing connection if any
+        if (db) {
+          db.close();
+        }
+
+        // Open new database
+        db = new Database(dbPath);
+        db.pragma('journal_mode = WAL');
+        currentDbPath = dbPath;
+
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({ error: errorMessage }, null, 2),
+              text: `Connected to database: ${dbPath}`,
             },
           ],
         };
       }
-    });
-  }
 
-  private async handleConnect(args: { dbPath: string }) {
-    const { dbPath } = args;
+      case 'sqlite_query': {
+        if (!db) {
+          throw new Error('Not connected to a database. Use sqlite_connect first.');
+        }
 
-    // Close existing connection if any
-    if (this.db) {
-      this.db.close();
+        const sql = args?.sql as string;
+        if (!sql) {
+          throw new Error('sql is required');
+        }
+
+        // Only allow SELECT and PRAGMA
+        const trimmedSql = sql.trim().toUpperCase();
+        if (!trimmedSql.startsWith('SELECT') && !trimmedSql.startsWith('PRAGMA')) {
+          throw new Error('Only SELECT and PRAGMA queries are allowed. Use sqlite_execute for other statements.');
+        }
+
+        const startTime = Date.now();
+        const results = db.prepare(sql).all() as Record<string, unknown>[];
+        const duration = Date.now() - startTime;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                rows: results.length,
+                duration: `${duration}ms`,
+                data: results,
+              }, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'sqlite_execute': {
+        if (!db) {
+          throw new Error('Not connected to a database. Use sqlite_connect first.');
+        }
+
+        const sql = args?.sql as string;
+        if (!sql) {
+          throw new Error('sql is required');
+        }
+
+        // Don't allow SELECT in execute
+        const trimmedSql = sql.trim().toUpperCase();
+        if (trimmedSql.startsWith('SELECT')) {
+          throw new Error('SELECT queries not allowed in execute. Use sqlite_query instead.');
+        }
+
+        const startTime = Date.now();
+        const result = db.prepare(sql).run();
+        const duration = Date.now() - startTime;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                changes: result.changes,
+                lastInsertRowid: result.lastInsertRowid,
+                duration: `${duration}ms`,
+              }, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'sqlite_tables': {
+        if (!db) {
+          throw new Error('Not connected to a database. Use sqlite_connect first.');
+        }
+
+        const tables = db
+          .prepare(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+          )
+          .all() as { name: string }[];
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                database: currentDbPath,
+                count: tables.length,
+                tables: tables.map((t) => t.name),
+              }, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'sqlite_schema': {
+        if (!db) {
+          throw new Error('Not connected to a database. Use sqlite_connect first.');
+        }
+
+        const tableName = args?.tableName as string;
+        if (!tableName) {
+          throw new Error('tableName is required');
+        }
+
+        const pragma = db.pragma(`table_info(${tableName})`) as Array<{
+          cid: number;
+          name: string;
+          type: string;
+          notnull: number;
+          dflt_value: unknown;
+          pk: number;
+        }>;
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                table: tableName,
+                columns: pragma.map((col) => ({
+                  name: col.name,
+                  type: col.type,
+                  nullable: col.notnull === 0,
+                  primaryKey: col.pk > 0,
+                  defaultValue: col.dflt_value,
+                })),
+              }, null, 2),
+            },
+          ],
+        };
+      }
+
+      default:
+        throw new Error(`Unknown tool: ${name}`);
     }
-
-    // Create new connection
-    this.dbPath = dbPath;
-    this.db = new Database(dbPath);
-    this.db.pragma('journal_mode = WAL');
-
+  } catch (error) {
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              message: `Connected to database: ${dbPath}`,
-              path: dbPath,
-            },
-            null,
-            2
-          ),
+          text: JSON.stringify({
+            error: error instanceof Error ? error.message : String(error),
+          }),
         },
       ],
+      isError: true,
     };
   }
+});
 
-  private async handleQuery(args: { sql: string }) {
-    if (!this.db) {
-      throw new Error('Not connected to a database. Use sqlite_connect first.');
-    }
-
-    const { sql } = args;
-
-    // Validate it's a SELECT query
-    const trimmedSql = sql.trim().toUpperCase();
-    if (!trimmedSql.startsWith('SELECT') && !trimmedSql.startsWith('PRAGMA')) {
-      throw new Error('Only SELECT and PRAGMA queries are allowed. Use sqlite_execute for other statements.');
-    }
-
-    const stmt = this.db.prepare(sql);
-    const rows = stmt.all();
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              rows: rows,
-              rowCount: Array.isArray(rows) ? rows.length : 0,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  }
-
-  private async handleExecute(args: { sql: string }) {
-    if (!this.db) {
-      throw new Error('Not connected to a database. Use sqlite_connect first.');
-    }
-
-    const { sql } = args;
-    const result = this.db.exec(sql);
-
-    // For INSERT/UPDATE/DELETE, get changes count
-    const changes = this.db_changes();
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              message: 'Statement executed successfully',
-              changes: changes,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  }
-
-  private async handleTables() {
-    if (!this.db) {
-      throw new Error('Not connected to a database. Use sqlite_connect first.');
-    }
-
-    const stmt = this.db.prepare(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
-    );
-    const tables = stmt.all() as Array<{ name: string }>;
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              tables: tables.map((t) => t.name),
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  }
-
-  private async handleSchema(args: { tableName: string }) {
-    if (!this.db) {
-      throw new Error('Not connected to a database. Use sqlite_connect first.');
-    }
-
-    const { tableName } = args;
-
-    const stmt = this.db.prepare(`PRAGMA table_info(${tableName})`);
-    const columns = stmt.all();
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              success: true,
-              table: tableName,
-              columns: columns,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  }
-
-  private db_changes(): number {
-    if (!this.db) return 0;
-    const stmt = this.db.prepare('SELECT changes() as changes');
-    const result = stmt.get() as { changes: number };
-    return result.changes;
-  }
-
-  async run() {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    console.error('SQLite MCP Server running on stdio');
-  }
+// Start server
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  // Server is now listening on stdio
 }
 
-// Start the server
-const mcpServer = new SQLiteMCPServer();
-mcpServer.run().catch(console.error);
+// Cleanup on exit
+process.on('SIGINT', () => {
+  if (db) {
+    db.close();
+  }
+  process.exit(0);
+});
+
+main().catch((error) => {
+  console.error('Server error:', error);
+  process.exit(1);
+});
