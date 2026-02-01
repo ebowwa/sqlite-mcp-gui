@@ -1,0 +1,149 @@
+# =============================================================================
+# Kubernetes Deployment Manifest for sqlite-mcp-gui
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqlite-mcp-gui
+  namespace: default
+  labels:
+    app: sqlite-mcp-gui
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sqlite-mcp-gui
+  template:
+    metadata:
+      labels:
+        app: sqlite-mcp-gui
+        version: v1
+    spec:
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+
+      # Init container to set proper permissions
+      initContainers:
+        - name: setup-data
+          image: busybox:1.36
+          command: ['sh', '-c', 'chmod -R 755 /app/data && chown -R 1001:1001 /app/data']
+          volumeMounts:
+            - name: sqlite-data
+              mountPath: /app/data
+
+      containers:
+        - name: sqlite-mcp-gui
+          image: ghcr.io/yourusername/sqlite-mcp-gui:latest
+          imagePullPolicy: Always
+
+          # Security context for container
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+
+          # Health checks
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Startup probe
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 30
+
+          # Resource limits
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+            requests:
+              cpu: "250m"
+              memory: 128Mi
+
+          # Volume mounts
+          volumeMounts:
+            - name: sqlite-data
+              mountPath: /app/data
+            - name: tmp
+              mountPath: /tmp
+
+      # Volumes
+      volumes:
+        - name: sqlite-data
+          persistentVolumeClaim:
+            claimName: sqlite-data-pvc
+        - name: tmp
+          emptyDir: {}
+
+      # Node affinity (optional)
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - sqlite-mcp-gui
+                topologyKey: kubernetes.io/hostname
+
+---
+# Persistent Volume Claim for SQLite data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sqlite-data-pvc
+  namespace: default
+  labels:
+    app: sqlite-mcp-gui
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  # Optional: specify storage class
+  # storageClassName: standard
