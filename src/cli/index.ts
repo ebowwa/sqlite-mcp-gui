@@ -2,11 +2,11 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import * as readline from 'readline';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { join, homedir } from 'path';
+import * as readline from 'node:readline';
+import { existsSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 import Database from 'better-sqlite3';
-
 const program = new Command();
 const configPath = join(homedir(), '.sqlite-mcp-gui.json');
 
@@ -309,8 +309,7 @@ program
       const db = openDatabase(dbPath);
 
       // Copy the database file
-      const fs = require('fs');
-      fs.copyFileSync(dbPath, outputPath);
+      copyFileSync(dbPath, outputPath);
 
       const result = {
         success: true,

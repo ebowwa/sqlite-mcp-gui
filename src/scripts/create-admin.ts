@@ -10,8 +10,7 @@
  *   AUTH_ENABLED=true node dist/scripts/create-admin.js
  */
 
-import { createReadStream, createWriteStream, existsSync } from 'fs';
-import { createInterface } from 'readline';
+import * as readline from 'readline';
 import { createUser } from '../auth/users.js';
 import { validatePassword } from '../auth/auth.config.js';
 import type { UserRole } from '../auth/types.js';
@@ -20,15 +19,18 @@ import type { UserRole } from '../auth/types.js';
  * Read a line from stdin
  */
 function question(query: string): Promise<string> {
-  const rl = createInterface({
-    input: createReadStream(0),
-    output: createWriteStream(1),
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
   });
 
-  return new Promise(resolve => rl.question(query, ans => {
-    rl.close();
-    resolve(ans);
-  }));
+  return new Promise(resolve => {
+    // @ts-ignore
+    rl.question(query, ans => {
+      rl.close();
+      resolve(ans);
+    });
+  });
 }
 
 /**
