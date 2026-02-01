@@ -10,9 +10,18 @@
     "start:mcp": "node dist/server/index.js",
     "start:ui": "node dist/ui/server.js",
     "dev": "npm run build && npm run start:ui",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
   },
-  "keywords": ["sqlite", "mcp", "gui", "database", "web-ui"],
+  "keywords": [
+    "sqlite",
+    "mcp",
+    "gui",
+    "database",
+    "web-ui"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
@@ -21,9 +30,13 @@
     "express": "^4.21.2"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.12",
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.10.5",
-    "typescript": "^5.7.3"
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.7",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/ui": "^4.0.18",
+    "supertest": "^7.2.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }
