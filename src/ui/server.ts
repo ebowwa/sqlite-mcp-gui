@@ -9,11 +9,17 @@
 import express from 'express';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { createWebSocketServer, WebSocketServer } from '../websocket/server.js';
 
 // @ts-ignore
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
+const WS_ENABLED = process.env.WS_ENABLED !== 'false'; // Enable by default
+const WS_PORT = parseInt(process.env.WS_PORT || '3001', 10);
+
+// WebSocket server instance
+let wsServer: WebSocketServer | null = null;
 
 // Middleware
 app.use(express.json());
@@ -106,8 +112,36 @@ app.get('/', (req, res) => {
 });
 
 /**
+ * GET /ws/status - Get WebSocket status
+ */
+app.get('/ws/status', (req, res) => {
+  res.json({
+    enabled: WS_ENABLED,
+    port: WS_PORT,
+    connected: wsServer ? wsServer.getClientCount() : 0,
+  });
+});
+
+/**
  * Start the server
  */
 app.listen(PORT, () => {
   console.log(`SQLite GUI Server running at http://localhost:${PORT}`);
+
+  // Start WebSocket server if enabled
+  if (WS_ENABLED) {
+    try {
+      wsServer = createWebSocketServer({
+        port: WS_PORT,
+        path: '/ws',
+        heartbeatInterval: 30000,
+        maxConnections: 100,
+      });
+      console.log(`WebSocket server enabled on ws://localhost:${WS_PORT}/ws`);
+    } catch (error) {
+      console.error('Failed to start WebSocket server:', error);
+    }
+  } else {
+    console.log('WebSocket server disabled (set WS_ENABLED=true to enable)');
+  }
 });
