@@ -2,7 +2,6 @@
  * SQLite GUI Web Server
  *
  * Express server providing a web interface for SQLite database operations.
- * Includes REST API endpoints for querying, listing tables, and retrieving schema.
  *
  * @module ui/server
  */
@@ -10,9 +9,6 @@
 import express from 'express';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { setupCookieParser } from '../auth/routes.js';
-import { authenticate } from '../auth/middleware.js';
-import { authConfig } from '../auth/auth.config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -20,70 +16,23 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
-setupCookieParser(app);
 app.use(express.static(join(__dirname, 'public')));
 
-// Import auth routes
-import authRoutes from '../auth/routes.js';
-
-// Mount authentication routes
-app.use('/auth', authRoutes);
-
 /**
- * POST /api/query
- *
- * Execute SQL queries against a SQLite database.
- * Supports SELECT, PRAGMA, INSERT, UPDATE, DELETE, and other SQL operations.
- * Requires authentication if enabled.
- *
+ * POST /api/query - Execute SQL queries
  * @param {Object} req.body - Request body
- * @param {string} req.body.dbPath - Path to the SQLite database file
- * @param {string} req.body.sql - SQL query to execute
- *
- * @returns {Object} Response
- * @returns {boolean} response.success - Indicates if the query was successful
- * @returns {Array<Object>} [response.rows] - Result rows (for SELECT queries)
- * @returns {number} [response.rowCount] - Number of rows returned
- * @returns {number} [response.changes] - Number of rows affected (for INSERT/UPDATE/DELETE)
- * @returns {string} [response.message] - Success message
- *
- * @example
- * // SELECT query example
- * fetch('/api/query', {
- *   method: 'POST',
- *   headers: { 'Content-Type': 'application/json' },
- *   body: JSON.stringify({
- *     dbPath: '/path/to/database.db',
- *     sql: 'SELECT * FROM users LIMIT 10'
- *   })
- * })
- *
- * @example
- * // INSERT query example
- * fetch('/api/query', {
- *   method: 'POST',
- *   headers: { 'Content-Type': 'application/json' },
- *   body: JSON.stringify({
- *     dbPath: '/path/to/database.db',
- *     sql: "INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com')"
- *   })
- * })
+ * @param {string} req.body.dbPath - Path to database
+ * @param {string} req.body.sql - SQL query
  */
-app.post('/api/query', authenticate, async (req, res) => {
+app.post('/api/query', async (req, res) => {
   try {
     const { dbPath, sql } = req.body;
-
     if (!dbPath || !sql) {
       return res.status(400).json({ error: 'dbPath and sql are required' });
     }
-
-    // For now, we'll use a simple SQLite approach
-    // In a full implementation, this would use the MCP server
     const Database = (await import('better-sqlite3')).default;
     const db = new Database(dbPath);
-
     const trimmedSql = sql.trim().toUpperCase();
-
     if (trimmedSql.startsWith('SELECT') || trimmedSql.startsWith('PRAGMA')) {
       const stmt = db.prepare(sql);
       const rows = stmt.all();
@@ -94,7 +43,6 @@ app.post('/api/query', authenticate, async (req, res) => {
       const { changes } = changesStmt.get() as { changes: number };
       res.json({ success: true, changes, message: 'Query executed successfully' });
     }
-
     db.close();
   } catch (error) {
     res.status(500).json({
@@ -104,44 +52,20 @@ app.post('/api/query', authenticate, async (req, res) => {
 });
 
 /**
- * POST /api/tables
- *
- * List all tables in the SQLite database.
- * Excludes SQLite system tables (those starting with 'sqlite_').
- * Requires authentication if enabled.
- *
- * @param {Object} req.body - Request body
- * @param {string} req.body.dbPath - Path to the SQLite database file
- *
- * @returns {Object} Response
- * @returns {boolean} response.success - Indicates if the request was successful
- * @returns {string[]} response.tables - Array of table names in alphabetical order
- *
- * @example
- * fetch('/api/tables', {
- *   method: 'POST',
- *   headers: { 'Content-Type': 'application/json' },
- *   body: JSON.stringify({
- *     dbPath: '/path/to/database.db'
- *   })
- * })
+ * POST /api/tables - List all tables
  */
-app.post('/api/tables', authenticate, async (req, res) => {
+app.post('/api/tables', async (req, res) => {
   try {
     const { dbPath } = req.body;
-
     if (!dbPath) {
       return res.status(400).json({ error: 'dbPath is required' });
     }
-
     const Database = (await import('better-sqlite3')).default;
     const db = new Database(dbPath);
-
     const stmt = db.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
     );
     const tables = stmt.all() as Array<{ name: string }>;
-
     res.json({ success: true, tables: tables.map((t) => t.name) });
     db.close();
   } catch (error) {
@@ -152,51 +76,18 @@ app.post('/api/tables', authenticate, async (req, res) => {
 });
 
 /**
- * POST /api/schema
- *
- * Get schema information for a specific table.
- * Returns column names, data types, constraints, and other metadata.
- * Requires authentication if enabled.
- *
- * @param {Object} req.body - Request body
- * @param {string} req.body.dbPath - Path to the SQLite database file
- * @param {string} req.body.tableName - Name of the table to get schema for
- *
- * @returns {Object} Response
- * @returns {boolean} response.success - Indicates if the request was successful
- * @returns {string} response.table - Name of the table
- * @returns {Array<Object>} response.columns - Array of column information objects
- * @returns {number} response.columns[].cid - Column ID (0-based index)
- * @returns {string} response.columns[].name - Column name
- * @returns {string} response.columns[].type - Column data type (INTEGER, TEXT, REAL, BLOB)
- * @returns {number} response.columns[].notnull - NOT NULL constraint (1 or 0)
- * @returns {string|null} response.columns[].dflt_value - Default value
- * @returns {number} response.columns[].pk - Primary key position (0 if not part of PK)
- *
- * @example
- * fetch('/api/schema', {
- *   method: 'POST',
- *   headers: { 'Content-Type': 'application/json' },
- *   body: JSON.stringify({
- *     dbPath: '/path/to/database.db',
- *     tableName: 'users'
- *   })
- * })
+ * POST /api/schema - Get table schema
  */
-app.post('/api/schema', authenticate, async (req, res) => {
+app.post('/api/schema', async (req, res) => {
   try {
     const { dbPath, tableName } = req.body;
-
     if (!dbPath || !tableName) {
       return res.status(400).json({ error: 'dbPath and tableName are required' });
     }
-
     const Database = (await import('better-sqlite3')).default;
     const db = new Database(dbPath);
-
     const stmt = db.prepare(`PRAGMA table_info(${tableName})`);
     const columns = stmt.all();
-
     res.json({ success: true, table: tableName, columns });
     db.close();
   } catch (error) {
@@ -207,45 +98,15 @@ app.post('/api/schema', authenticate, async (req, res) => {
 });
 
 /**
- * GET /
- *
- * Serve the main application HTML page.
- *
- * @returns {HTML} The main index.html page
- *
- * @example
- * // Open in browser
- * // http://localhost:3000/
+ * GET / - Serve main application page
  */
 app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'public', 'index.html'));
 });
 
 /**
- * Start the HTTP server.
- *
- * Server listens on the configured PORT (default: 3000).
- * Can be customized via the PORT environment variable.
- *
- * Authentication status is logged on startup based on AUTH_ENABLED.
- *
- * @example
- * // Start with default port
- * npm run start:ui
- *
- * @example
- * // Start with custom port
- * PORT=8080 npm run start:ui
- *
- * @example
- * // Start with authentication enabled
- * AUTH_ENABLED=true npm run start:ui
+ * Start the server
  */
 app.listen(PORT, () => {
   console.log(`SQLite GUI Server running at http://localhost:${PORT}`);
-  if (authConfig.enabled) {
-    console.log(`Authentication: ENABLED`);
-  } else {
-    console.log(`Authentication: DISABLED (Set AUTH_ENABLED=true to enable)`);
-  }
 });

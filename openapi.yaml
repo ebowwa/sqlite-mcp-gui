@@ -1,0 +1,488 @@
+openapi: 3.0.3
+info:
+  title: SQLite MCP GUI API
+  description: |
+    REST API for SQLite MCP GUI - A web interface for interacting with SQLite databases.
+    This API provides endpoints for executing queries, listing tables, and retrieving schema information.
+  version: 1.0.0
+  contact:
+    name: SQLite MCP GUI
+    license:
+      name: MIT
+      url: https://opensource.org/licenses/MIT
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+  - url: http://localhost:{port}
+    description: Custom port
+    variables:
+      port:
+        default: '3000'
+        description: Port number (default: 3000 or PORT env var)
+
+tags:
+  - name: Database
+    description: Database operations
+  - name: Tables
+    description: Table information and schema
+  - name: Health
+    description: Health check endpoints
+  - name: Metrics
+    description: Performance and usage metrics
+
+paths:
+  /api/query:
+    post:
+      tags:
+        - Database
+      summary: Execute SQL query
+      description: |
+        Executes a SQL query against the specified SQLite database.
+        Supports SELECT, PRAGMA statements and other SQL operations.
+      operationId: executeQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+            examples:
+              selectQuery:
+                summary: SELECT query
+                description: Retrieve data from a table
+                value:
+                  dbPath: /path/to/database.db
+                  sql: SELECT * FROM users LIMIT 10
+              pragmaQuery:
+                summary: PRAGMA query
+                description: Get database pragma information
+                value:
+                  dbPath: /path/to/database.db
+                  sql: PRAGMA table_info(users)
+              insertQuery:
+                summary: INSERT query
+                description: Insert new data
+                value:
+                  dbPath: /path/to/database.db
+                  sql: "INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com')"
+      responses:
+        '200':
+          description: Query executed successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/QueryResponse'
+                  - $ref: '#/components/schemas/ExecuteResponse'
+              examples:
+                selectResponse:
+                  summary: SELECT response
+                  value:
+                    success: true
+                    rows:
+                      - id: 1
+                        name: John Doe
+                        email: john@example.com
+                      - id: 2
+                        name: Jane Smith
+                        email: jane@example.com
+                    rowCount: 2
+                executeResponse:
+                  summary: INSERT/UPDATE/DELETE response
+                  value:
+                    success: true
+                    changes: 1
+                    message: Query executed successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security: []
+      x-rate-limit: 100 requests per minute
+
+  /api/tables:
+    post:
+      tags:
+        - Tables
+      summary: List all tables
+      description: |
+        Retrieves a list of all user-created tables in the specified SQLite database.
+        Excludes SQLite system tables (those starting with sqlite_).
+      operationId: listTables
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TablesRequest'
+            examples:
+              listTables:
+                summary: List all tables
+                value:
+                  dbPath: /path/to/database.db
+      responses:
+        '200':
+          description: Tables retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TablesResponse'
+              examples:
+                tablesResponse:
+                  summary: List of tables
+                  value:
+                    success: true
+                    tables:
+                      - users
+                      - products
+                      - orders
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security: []
+      x-rate-limit: 100 requests per minute
+
+  /api/schema:
+    post:
+      tags:
+        - Tables
+      summary: Get table schema
+      description: |
+        Retrieves the schema information for a specific table, including column names,
+        data types, constraints, and other metadata.
+      operationId: getTableSchema
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchemaRequest'
+            examples:
+              getSchema:
+                summary: Get table schema
+                value:
+                  dbPath: /path/to/database.db
+                  tableName: users
+      responses:
+        '200':
+          description: Schema retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaResponse'
+              examples:
+                schemaResponse:
+                  summary: Table schema
+                  value:
+                    success: true
+                    table: users
+                    columns:
+                      - cid: 0
+                        name: id
+                        type: INTEGER
+                        notnull: 1
+                        dflt_value: null
+                        pk: 1
+                      - cid: 1
+                        name: name
+                        type: TEXT
+                        notnull: 1
+                        dflt_value: null
+                        pk: 0
+                      - cid: 2
+                        name: email
+                        type: TEXT
+                        notnull: 0
+                        dflt_value: null
+                        pk: 0
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security: []
+      x-rate-limit: 100 requests per minute
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: |
+        Check if the API server is running and healthy.
+        Returns the current status and uptime information.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: healthy
+                uptime: 3600
+                timestamp: '2026-02-01T12:00:00Z'
+      security: []
+      x-rate-limit: No limit
+
+  /metrics:
+    get:
+      tags:
+        - Metrics
+      summary: API metrics
+      description: |
+        Retrieve usage and performance metrics including request counts,
+        error rates, and response times.
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+              example:
+                requests:
+                  total: 1250
+                  successful: 1200
+                  failed: 50
+                queries:
+                  total: 800
+                  selects: 600
+                  modifications: 200
+                performance:
+                  avgResponseTime: 45
+                  p95ResponseTime: 120
+                  p99ResponseTime: 250
+      security: []
+      x-rate-limit: No limit
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication (optional, not currently implemented)
+
+  schemas:
+    QueryRequest:
+      type: object
+      required:
+        - dbPath
+        - sql
+      properties:
+        dbPath:
+          type: string
+          format: path
+          description: Absolute or relative path to the SQLite database file
+          example: /path/to/database.db
+        sql:
+          type: string
+          description: SQL query to execute
+          example: SELECT * FROM users WHERE active = 1
+
+    QueryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the query was successful
+        rows:
+          type: array
+          description: Array of result rows (for SELECT queries)
+          items:
+            type: object
+            additionalProperties: true
+        rowCount:
+          type: integer
+          description: Number of rows returned
+          minimum: 0
+
+    ExecuteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the execution was successful
+        changes:
+          type: integer
+          description: Number of rows affected (for INSERT/UPDATE/DELETE)
+          minimum: 0
+        message:
+          type: string
+          description: Success message
+
+    TablesRequest:
+      type: object
+      required:
+        - dbPath
+      properties:
+        dbPath:
+          type: string
+          format: path
+          description: Absolute or relative path to the SQLite database file
+          example: /path/to/database.db
+
+    TablesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the request was successful
+        tables:
+          type: array
+          description: List of table names
+          items:
+            type: string
+          example: ['users', 'products', 'orders']
+
+    SchemaRequest:
+      type: object
+      required:
+        - dbPath
+        - tableName
+      properties:
+        dbPath:
+          type: string
+          format: path
+          description: Absolute or relative path to the SQLite database file
+          example: /path/to/database.db
+        tableName:
+          type: string
+          description: Name of the table to get schema for
+          example: users
+
+    SchemaResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the request was successful
+        table:
+          type: string
+          description: Name of the table
+        columns:
+          type: array
+          description: Column information
+          items:
+            type: object
+            properties:
+              cid:
+                type: integer
+                description: Column ID
+              name:
+                type: string
+                description: Column name
+              type:
+                type: string
+                description: Column data type
+              notnull:
+                type: integer
+                description: Whether the column has a NOT NULL constraint (1 or 0)
+              dflt_value:
+                type: string
+                nullable: true
+                description: Default value for the column
+              pk:
+                type: integer
+                description: Whether the column is part of the primary key (1 or 0)
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Health status of the server
+        uptime:
+          type: integer
+          description: Server uptime in seconds
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of the health check
+
+    MetricsResponse:
+      type: object
+      properties:
+        requests:
+          type: object
+          properties:
+            total:
+              type: integer
+            successful:
+              type: integer
+            failed:
+              type: integer
+        queries:
+          type: object
+          properties:
+            total:
+              type: integer
+            selects:
+              type: integer
+            modifications:
+              type: integer
+        performance:
+          type: object
+          properties:
+            avgResponseTime:
+              type: number
+              description: Average response time in milliseconds
+            p95ResponseTime:
+              type: number
+              description: 95th percentile response time in milliseconds
+            p99ResponseTime:
+              type: number
+              description: 99th percentile response time in milliseconds
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message describing what went wrong
+        code:
+          type: string
+          description: Error code for programmatic handling
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error details
+
+  responses:
+    BadRequest:
+      description: Bad request - missing or invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            missingParameters:
+              value:
+                error: dbPath and sql are required
+                code: MISSING_PARAMETERS
+            invalidDatabase:
+              value:
+                error: Unable to open database file
+                code: INVALID_DATABASE
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            databaseError:
+              value:
+                error: SQL logic error: no such table: users
+                code: DATABASE_ERROR
+            executionError:
+              value:
+                error: SQL logic error: near "FROM": syntax error
+                code: EXECUTION_ERROR
+
+security: []

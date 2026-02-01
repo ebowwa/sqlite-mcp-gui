@@ -54,6 +54,7 @@ declare module 'path' {
   export function dirname(path: string): string;
   export function basename(path: string): string;
   export function resolve(...paths: string[]): string;
+  export function homedir(): string;
   export const sep: string;
 }
 
