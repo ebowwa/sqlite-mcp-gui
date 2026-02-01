@@ -1,0 +1,67 @@
+{
+  "prompt": "Build a SQLite MCP GUI web application. Start with project setup (package.json, TypeScript config), then create the basic MCP server structure, then add a simple web UI. Do 3 iterations total, each improving on the previous.",
+  "promise": "SQLITE_GUI_DONE",
+  "iteration": 1,
+  "startTime": "2025-02-01T00:00:00.000Z",
+  "lastUpdate": "2025-02-01T00:05:00.000Z",
+  "tokens": {
+    "totalInput": 1000,
+    "totalOutput": 500,
+    "byIteration": [{"iteration": 1, "input": 1000, "output": 500}]
+  },
+  "filesChanged": ["package.json", "tsconfig.json"],
+  "workMemory": {
+    "completedFiles": ["package.json", "tsconfig.json"],
+    "fileChecksums": {}
+  },
+  "machine": {
+    "cpu": {"count": 2, "model": "x86_64", "tier": "low"},
+    "memory": {"total": 3.7, "free": 1.0, "available": 2.4, "tier": "medium"},
+    "disk": {"total": 38, "available": 20, "tier": "medium"},
+    "platform": {"os": "linux", "arch": "x86_64", "isContainer": false, "containerType": null},
+    "capacity": "medium",
+    "score": 50,
+    "activeSessions": 1,
+    "recommendations": {"canUseLanes": true, "canUseWorktrees": true, "maxParallelSessions": 2, "isolationPreference": "worktree"}
+  },
+  "git": {
+    "enabled": false,
+    "autoCommit": false,
+    "autoPR": false,
+    "baseBranch": "main",
+    "useLane": false,
+    "useWorktree": false,
+    "laneName": "",
+    "lanePath": "",
+    "laneCreated": false,
+    "branchCreated": false,
+    "branchName": "",
+    "currentCommit": ""
+  },
+  "slam": {
+    "enabled": true,
+    "phase": "executing",
+    "state": {
+      "currentTask": "Build MCP server structure with SQLite integration",
+      "beliefs": {"projectSetupComplete": true, "needsMcpServer": true, "needsWebUI": true},
+      "goals": ["SQLITE_GUI_DONE"]
+    },
+    "subtasks": [
+      {"id": "1", "name": "Project Setup", "status": "completed"},
+      {"id": "2", "name": "MCP Server with SQLite", "status": "in_progress"},
+      {"id": "3", "name": "Web UI", "status": "pending"}
+    ],
+    "currentSubtask": {"id": "2", "name": "MCP Server with SQLite", "status": "in_progress"},
+    "completedSubtasks": ["1"],
+    "memory": {
+      "actionsTaken": ["Created package.json", "Created tsconfig.json", "Installed dependencies"],
+      "outcomes": {"projectSetup": "success"},
+      "patterns": {}
+    }
+  },
+  "subagents": {
+    "enabled": true,
+    "available": ["planner", "executor", "reviewer", "fixer", "git", "reporter", "manager", "paranoid", "healer"],
+    "active": ["executor"]
+  }
+}

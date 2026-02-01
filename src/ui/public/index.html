@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLite MCP GUI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #00d9ff;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .connection-panel {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #0f3460;
+            color: #eee;
+            font-size: 14px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .btn-primary:hover {
+            background: #00b8dd;
+        }
+
+        .btn-success {
+            background: #00ff88;
+            color: #1a1a2e;
+        }
+
+        .btn-success:hover {
+            background: #00dd77;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            height: fit-content;
+        }
+
+        .sidebar h3 {
+            color: #00d9ff;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .table-list {
+            list-style: none;
+        }
+
+        .table-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #0f3460;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .table-item:hover {
+            background: #1a4a7a;
+        }
+
+        .table-item.active {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .query-panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .query-input {
+            width: 100%;
+            min-height: 100px;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #0f3460;
+            color: #eee;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        .query-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .results-panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .results-info {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+
+        th {
+            background: #0f3460;
+            color: #00d9ff;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background: #1a4a7a;
+        }
+
+        .error {
+            background: #3a1a1a;
+            color: #ff6b6b;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .success {
+            background: #1a3a1a;
+            color: #00ff88;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #00ff88;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status.connected {
+            background: #00ff88;
+        }
+
+        .status.disconnected {
+            background: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SQLite MCP GUI</h1>
+            <p class="subtitle">A web interface for SQLite databases using MCP protocol</p>
+        </header>
+
+        <div class="connection-panel">
+            <div class="input-group">
+                <input type="text" id="dbPath" placeholder="/path/to/database.db" value="./test.db">
+                <button class="btn-primary" onclick="connect()">Connect</button>
+            </div>
+            <p style="margin-top: 10px; color: #888; font-size: 0.9em;">
+                <span class="status disconnected" id="status"></span>
+                <span id="statusText">Disconnected</span>
+            </p>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h3>Tables</h3>
+                <ul class="table-list" id="tableList">
+                    <li class="empty-state" style="padding: 20px 0; font-size: 0.9em;">
+                        Connect to a database to view tables
+                    </li>
+                </ul>
+            </div>
+
+            <div>
+                <div class="query-panel">
+                    <textarea class="query-input" id="queryInput" placeholder="Enter SQL query...
+
+Examples:
+SELECT * FROM users LIMIT 10
+SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
+                    <div class="query-actions">
+                        <button class="btn-success" onclick="executeQuery()">Execute Query</button>
+                        <button class="btn-primary" onclick="loadTables()">Refresh Tables</button>
+                    </div>
+                </div>
+
+                <div class="results-panel" id="resultsPanel" style="display: none;">
+                    <div class="results-header">
+                        <h3>Results</h3>
+                        <span class="results-info" id="resultsInfo"></span>
+                    </div>
+                    <div id="resultsContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDbPath = '';
+        let connected = false;
+
+        async function connect() {
+            const dbPath = document.getElementById('dbPath').value;
+            if (!dbPath) {
+                showError('Please enter a database path');
+                return;
+            }
+
+            try {
+                // Just load tables to verify connection
+                const response = await fetch('/api/tables', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dbPath })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentDbPath = dbPath;
+                    connected = true;
+                    updateStatus(true);
+                    displayTables(data.tables);
+                    showSuccess(`Connected to ${dbPath}`);
+                } else {
+                    throw new Error(data.error || 'Connection failed');
+                }
+            } catch (error) {
+                showError(error.message || 'Failed to connect');
+                updateStatus(false);
+            }
+        }
+
+        async function loadTables() {
+            if (!connected) {
+                showError('Please connect to a database first');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/tables', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dbPath: currentDbPath })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    displayTables(data.tables);
+                }
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        function displayTables(tables) {
+            const tableList = document.getElementById('tableList');
+            if (tables.length === 0) {
+                tableList.innerHTML = '<li class="empty-state" style="padding: 20px 0; font-size: 0.9em;">No tables found</li>';
+                return;
+            }
+
+            tableList.innerHTML = tables.map(table =>
+                `<li class="table-item" onclick="selectTable('${table}')">${table}</li>`
+            ).join('');
+        }
+
+        async function selectTable(tableName) {
+            document.getElementById('queryInput').value = `SELECT * FROM ${tableName} LIMIT 100`;
+            document.querySelectorAll('.table-item').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        async function executeQuery() {
+            const sql = document.getElementById('queryInput').value.trim();
+            if (!sql) {
+                showError('Please enter a SQL query');
+                return;
+            }
+
+            if (!connected) {
+                showError('Please connect to a database first');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dbPath: currentDbPath, sql })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.rows !== undefined) {
+                        displayResults(data.rows, data.rowCount);
+                    } else {
+                        showSuccess(`Query executed successfully. ${data.changes || 0} row(s) affected.`);
+                    }
+                } else {
+                    throw new Error(data.error || 'Query failed');
+                }
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        function displayResults(rows, rowCount) {
+            const resultsPanel = document.getElementById('resultsPanel');
+            const resultsContent = document.getElementById('resultsContent');
+            const resultsInfo = document.getElementById('resultsInfo');
+
+            resultsPanel.style.display = 'block';
+            resultsInfo.textContent = `${rowCount} row(s) returned`;
+
+            if (!Array.isArray(rows) || rows.length === 0) {
+                resultsContent.innerHTML = '<div class="empty-state">No results</div>';
+                return;
+            }
+
+            const columns = Object.keys(rows[0]);
+            const table = document.createElement('table');
+            table.innerHTML = `
+                <thead>
+                    <tr>${columns.map(col => `<th>${col}</th>`).join('')}</tr>
+                </thead>
+                <tbody>
+                    ${rows.map(row => `
+                        <tr>${columns.map(col => `<td>${row[col] === null ? 'NULL' : row[col]}</td>`).join('')}</tr>
+                    `).join('')}
+                </tbody>
+            `;
+
+            resultsContent.innerHTML = '';
+            resultsContent.appendChild(table);
+        }
+
+        function showError(message) {
+            const resultsPanel = document.getElementById('resultsPanel');
+            const resultsContent = document.getElementById('resultsContent');
+
+            resultsPanel.style.display = 'block';
+            resultsContent.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function showSuccess(message) {
+            const resultsPanel = document.getElementById('resultsPanel');
+            const resultsContent = document.getElementById('resultsContent');
+
+            resultsPanel.style.display = 'block';
+            resultsContent.innerHTML = `<div class="success">${message}</div>`;
+        }
+
+        function updateStatus(isConnected) {
+            const status = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+
+            if (isConnected) {
+                status.className = 'status connected';
+                statusText.textContent = 'Connected';
+            } else {
+                status.className = 'status disconnected';
+                statusText.textContent = 'Disconnected';
+            }
+        }
+    </script>
+</body>
+</html>

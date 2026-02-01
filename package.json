@@ -1,0 +1,29 @@
+{
+  "name": "sqlite-mcp-gui",
+  "version": "1.0.0",
+  "description": "SQLite MCP GUI - A web interface for SQLite databases using MCP protocol",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "start:mcp": "node dist/server/index.js",
+    "start:ui": "node dist/ui/server.js",
+    "dev": "npm run build && npm run start:ui",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["sqlite", "mcp", "gui", "database", "web-ui"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "better-sqlite3": "^11.7.0",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}
