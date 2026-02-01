@@ -5,3 +5,6 @@ dist/
 .env
 package-lock.json
 *.lock
+*.db
+*.sqlite
+.claude
