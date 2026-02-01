@@ -60,7 +60,7 @@ class FileBackedUserStore implements UserStore {
     try {
       const usersArray = Array.from(this.users.values());
       const data = JSON.stringify(usersArray, null, 2);
-      writeFileSync(this.filePath, data, 'utf-8');
+      writeFileSync(this.filePath, data);
     } catch (error) {
       console.error('Failed to save users to file:', error);
     }
@@ -72,8 +72,8 @@ class FileBackedUserStore implements UserStore {
       throw new Error(`User '${username}' already exists`);
     }
 
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
 
     const user: User = {
       id: this.generateId(),
@@ -125,7 +125,7 @@ class FileBackedUserStore implements UserStore {
     const adminUser: User = {
       id: this.generateId(),
       username: 'admin',
-      passwordHash: await bcrypt.hash('admin123', 10),
+      passwordHash: await bcrypt.hash('admin123', await bcrypt.genSalt(10)),
       role: 'admin',
       createdAt: new Date(),
     };
@@ -201,8 +201,8 @@ export async function changePassword(userId: string, newPassword: string): Promi
     throw new Error('User not found');
   }
 
-  const saltRounds = 10;
-  user.passwordHash = await bcrypt.hash(newPassword, saltRounds);
+  const salt = await bcrypt.genSalt(10);
+  user.passwordHash = await bcrypt.hash(newPassword, salt);
   await store.save();
 }
 

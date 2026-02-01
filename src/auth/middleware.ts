@@ -4,6 +4,7 @@
 
 import jwt from 'jsonwebtoken';
 import type { Request, Response, NextFunction } from 'express';
+import { Buffer } from 'buffer';
 import { findUserByUsernameSync } from './users.js';
 import { authConfig } from './auth.config.js';
 import type { AuthContext, AuthMethod, JwtPayload } from './types.js';
@@ -42,7 +43,7 @@ function authenticateJWT(req: Request): AuthContext | null {
   try {
     const decoded = jwt.verify(token, authConfig.jwt.secret) as JwtPayload;
 
-    const user = findUserByUsername(decoded.username);
+    const user = findUserByUsernameSync(decoded.username);
     if (!user) {
       return null;
     }
@@ -106,7 +107,7 @@ async function authenticateBasicAuth(req: Request): Promise<AuthContext | null> 
     return null;
   }
 
-  const user = await findUserByUsername(username);
+  const user = findUserByUsernameSync(username);
   if (!user) {
     return null;
   }
@@ -134,7 +135,7 @@ function authenticateSession(req: Request): AuthContext | null {
   try {
     const decoded = jwt.verify(sessionCookie, authConfig.session.secret) as JwtPayload;
 
-    const user = findUserByUsername(decoded.username);
+    const user = findUserByUsernameSync(decoded.username);
     if (!user) {
       return null;
     }

@@ -1,6 +1,8 @@
 // Polyfill for import.meta.url
+// @ts-ignore
 export const meta = {
-  url: `file://${process.cwd()}/index.js`
+  // @ts-ignore
+  url: typeof process !== 'undefined' ? `file://${process.cwd()}/index.js` : 'file:///index.js'
 };
 
 // Export a compatibility shim
