@@ -206,41 +206,11 @@ app.post('/api/schema', authenticate, async (req, res) => {
   }
 });
 
-/**
- * GET /
- *
- * Serve the main application HTML page.
- *
- * @returns {HTML} The main index.html page
- *
- * @example
- * // Open in browser
- * // http://localhost:3000/
- */
+// Serve index.html for root route
 app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'public', 'index.html'));
 });
 
-/**
- * Start the HTTP server.
- *
- * Server listens on the configured PORT (default: 3000).
- * Can be customized via the PORT environment variable.
- *
- * Authentication status is logged on startup based on AUTH_ENABLED.
- *
- * @example
- * // Start with default port
- * npm run start:ui
- *
- * @example
- * // Start with custom port
- * PORT=8080 npm run start:ui
- *
- * @example
- * // Start with authentication enabled
- * AUTH_ENABLED=true npm run start:ui
- */
 app.listen(PORT, () => {
   console.log(`SQLite GUI Server running at http://localhost:${PORT}`);
   if (authConfig.enabled) {

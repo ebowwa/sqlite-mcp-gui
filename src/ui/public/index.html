@@ -250,14 +250,204 @@
         .status.disconnected {
             background: #ff6b6b;
         }
+
+        /* Login Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .login-modal {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-modal h2 {
+            color: #00d9ff;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+        }
+
+        .login-form .form-group {
+            margin-bottom: 20px;
+        }
+
+        .login-form label {
+            display: block;
+            margin-bottom: 8px;
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .login-form input[type="text"],
+        .login-form input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #0f3460;
+            color: #eee;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .login-form input:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        .login-form .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: #00d9ff;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .login-form .btn-login:hover {
+            background: #00b8dd;
+        }
+
+        /* User Info Bar */
+        .user-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: #0f3460;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #00d9ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a1a2e;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #eee;
+        }
+
+        .user-role {
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .btn-logout {
+            padding: 8px 16px;
+            background: transparent;
+            color: #ff6b6b;
+            border: 1px solid #ff6b6b;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: #ff6b6b;
+            color: #1a1a2e;
+        }
+
+        input[type="password"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #0f3460;
+            color: #eee;
+            font-size: 14px;
+        }
+
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="login-modal">
+            <h2>Login</h2>
+            <form class="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn-login">Login</button>
+            </form>
+            <div id="loginError" style="margin-top: 15px; color: #ff6b6b; text-align: center; display: none;"></div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer" style="display: none;">
         <header>
-            <h1>SQLite MCP GUI</h1>
-            <p class="subtitle">A web interface for SQLite databases using MCP protocol</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>SQLite MCP GUI</h1>
+                    <p class="subtitle">A web interface for SQLite databases using MCP protocol</p>
+                </div>
+            </div>
         </header>
+
+        <!-- User Info Bar -->
+        <div class="user-bar" id="userBar">
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">A</div>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Admin User</span>
+                    <span class="user-role" id="userRole">Administrator</span>
+                </div>
+            </div>
+            <button class="btn-logout" onclick="handleLogout()">Logout</button>
+        </div>
 
         <div class="connection-panel">
             <div class="input-group">
@@ -307,6 +497,127 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
     <script>
         let currentDbPath = '';
         let connected = false;
+        let authToken = null;
+        let currentUser = null;
+
+        // Check authentication status on load
+        async function checkAuth() {
+            try {
+                const response = await fetch('/auth/config');
+                const config = await response.json();
+
+                if (!config.enabled) {
+                    // Auth disabled, show main UI
+                    showMainUI();
+                    return;
+                }
+
+                // Check if user is logged in
+                const meResponse = await fetch('/auth/me');
+                const meData = await meResponse.json();
+
+                if (meData.authenticated) {
+                    currentUser = meData.user;
+                    showMainUI();
+                } else {
+                    showLoginModal();
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                showMainUI(); // Fallback to showing UI
+            }
+        }
+
+        function showLoginModal() {
+            document.getElementById('loginModal').classList.add('active');
+            document.getElementById('mainContainer').style.display = 'none';
+        }
+
+        function showMainUI() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.getElementById('mainContainer').style.display = 'block';
+
+            if (currentUser) {
+                // Update user info bar
+                document.getElementById('userName').textContent = currentUser.username;
+                document.getElementById('userRole').textContent = formatRole(currentUser.role);
+                document.getElementById('userAvatar').textContent = currentUser.username.charAt(0).toUpperCase();
+            } else {
+                // Hide user bar if auth is disabled
+                document.getElementById('userBar').style.display = 'none';
+            }
+        }
+
+        function formatRole(role) {
+            const roleMap = {
+                'admin': 'Administrator',
+                'read-write': 'Read & Write Access',
+                'read-only': 'Read Only Access'
+            };
+            return roleMap[role] || role;
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('loginError');
+
+            try {
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentUser = data.user;
+                    authToken = data.token;
+                    showMainUI();
+                    errorDiv.style.display = 'none';
+                } else {
+                    errorDiv.textContent = data.message || 'Login failed';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Login failed: ' + error.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await fetch('/auth/logout', { method: 'POST' });
+                authToken = null;
+                currentUser = null;
+                showLoginModal();
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        }
+
+        // Helper function to make authenticated requests
+        async function authenticatedFetch(url, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            return fetch(url, {
+                ...options,
+                headers
+            });
+        }
+
+        // Check auth on page load
+        checkAuth();
 
         async function connect() {
             const dbPath = document.getElementById('dbPath').value;
@@ -317,9 +628,8 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
 
             try {
                 // Just load tables to verify connection
-                const response = await fetch('/api/tables', {
+                const response = await authenticatedFetch('/api/tables', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ dbPath })
                 });
 
@@ -347,9 +657,8 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
             }
 
             try {
-                const response = await fetch('/api/tables', {
+                const response = await authenticatedFetch('/api/tables', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ dbPath: currentDbPath })
                 });
 
@@ -393,9 +702,8 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
             }
 
             try {
-                const response = await fetch('/api/query', {
+                const response = await authenticatedFetch('/api/query', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ dbPath: currentDbPath, sql })
                 });
 

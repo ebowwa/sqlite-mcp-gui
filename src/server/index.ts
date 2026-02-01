@@ -1,5 +1,30 @@
 #!/usr/bin/env node
 
+/**
+ * SQLite MCP Server
+ *
+ * Model Context Protocol (MCP) server for SQLite database operations.
+ * Provides tools for connecting to databases, executing queries, and managing schema.
+ *
+ * @module server/index
+ *
+ * @example
+ * // Start the MCP server
+ * npm run start:mcp
+ *
+ * @example
+ * // Use with Claude Desktop
+ * // Add to claude_desktop_config.json:
+ * // {
+ * //   "mcpServers": {
+ * //     "sqlite": {
+ * //       "command": "node",
+ * //       "args": ["/path/to/dist/server/index.js"]
+ * //     }
+ * //   }
+ * // }
+ */
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -10,7 +35,16 @@ import Database from 'better-sqlite3';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
-// MCP Server implementation for SQLite
+/**
+ * MCP Server implementation for SQLite
+ *
+ * Provides 5 tools for database operations:
+ * - sqlite_connect: Connect to a database
+ * - sqlite_query: Execute SELECT/PRAGMA queries
+ * - sqlite_execute: Execute INSERT/UPDATE/DELETE/CREATE/etc
+ * - sqlite_tables: List all tables
+ * - sqlite_schema: Get table schema
+ */
 class SQLiteMCPServer {
   private server: Server;
   private db: Database.Database | null = null;
@@ -32,8 +66,19 @@ class SQLiteMCPServer {
     this.setupHandlers();
   }
 
+  /**
+   * Setup request handlers for the MCP server.
+   *
+   * Registers handlers for:
+   * - ListToolsRequestSchema: Returns available tools and their schemas
+   * - CallToolRequestSchema: Handles tool execution
+   */
   private setupHandlers() {
-    // List available tools
+    /**
+     * List available MCP tools
+     *
+     * Returns tool definitions including names, descriptions, and input schemas.
+     */
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
       return {
         tools: [
@@ -105,7 +150,15 @@ class SQLiteMCPServer {
       };
     });
 
-    // Handle tool calls
+    /**
+     * Handle tool execution requests
+     *
+     * Routes tool calls to appropriate handler methods.
+     * All errors are caught and returned as error responses.
+     *
+     * @param request - The tool call request containing tool name and arguments
+     * @returns Tool execution result or error
+     */
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
@@ -143,6 +196,21 @@ class SQLiteMCPServer {
     });
   }
 
+  /**
+   * Handle sqlite_connect tool call
+   *
+   * Connects to a SQLite database file. Creates the database if it doesn't exist.
+   * Enables WAL (Write-Ahead Logging) mode for better concurrency.
+   * Closes any existing database connection before connecting.
+   *
+   * @param args.dbPath - Path to the SQLite database file
+   * @returns Connection success response with database path
+   *
+   * @example
+   * // Connect to database
+   * sqlite_connect({ dbPath: '/path/to/database.db' })
+   * // Returns: { success: true, message: "Connected to database: ...", path: "..." }
+   */
   private async handleConnect(args: { dbPath: string }) {
     const { dbPath } = args;
 
@@ -174,6 +242,26 @@ class SQLiteMCPServer {
     };
   }
 
+  /**
+   * Handle sqlite_query tool call
+   *
+   * Executes a SELECT or PRAGMA query on the connected database.
+   * Only allows read-only queries for safety.
+   *
+   * @param args.sql - SQL query (must be SELECT or PRAGMA)
+   * @returns Query results as JSON with row count
+   * @throws {Error} If not connected to database or query type is invalid
+   *
+   * @example
+   * // Execute SELECT query
+   * sqlite_query({ sql: 'SELECT * FROM users LIMIT 10' })
+   * // Returns: { success: true, rows: [...], rowCount: 10 }
+   *
+   * @example
+   * // Execute PRAGMA query
+   * sqlite_query({ sql: 'PRAGMA table_info(users)' })
+   * // Returns: { success: true, rows: [...], rowCount: 3 }
+   */
   private async handleQuery(args: { sql: string }) {
     if (!this.db) {
       throw new Error('Not connected to a database. Use sqlite_connect first.');
@@ -208,6 +296,31 @@ class SQLiteMCPServer {
     };
   }
 
+  /**
+   * Handle sqlite_execute tool call
+   *
+   * Executes a SQL statement that modifies data or schema.
+   * Supports INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, etc.
+   *
+   * @param args.sql - SQL statement to execute
+   * @returns Execution result with number of rows affected
+   * @throws {Error} If not connected to database
+   *
+   * @example
+   * // Insert data
+   * sqlite_execute({ sql: "INSERT INTO users (name) VALUES ('John')" })
+   * // Returns: { success: true, message: "...", changes: 1 }
+   *
+   * @example
+   * // Create table
+   * sqlite_execute({ sql: 'CREATE TABLE logs (id INTEGER PRIMARY KEY)' })
+   * // Returns: { success: true, message: "...", changes: 0 }
+   *
+   * @example
+   * // Update data
+   * sqlite_execute({ sql: 'UPDATE users SET active = 1 WHERE id = 5' })
+   * // Returns: { success: true, message: "...", changes: 1 }
+   */
   private async handleExecute(args: { sql: string }) {
     if (!this.db) {
       throw new Error('Not connected to a database. Use sqlite_connect first.');
@@ -237,6 +350,20 @@ class SQLiteMCPServer {
     };
   }
 
+  /**
+   * Handle sqlite_tables tool call
+   *
+   * Lists all user-created tables in the database.
+   * Excludes SQLite system tables (those starting with 'sqlite_').
+   *
+   * @returns Array of table names in alphabetical order
+   * @throws {Error} If not connected to database
+   *
+   * @example
+   * // List all tables
+   * sqlite_tables()
+   * // Returns: { success: true, tables: ['users', 'products', 'orders'] }
+   */
   private async handleTables() {
     if (!this.db) {
       throw new Error('Not connected to a database. Use sqlite_connect first.');
@@ -264,6 +391,28 @@ class SQLiteMCPServer {
     };
   }
 
+  /**
+   * Handle sqlite_schema tool call
+   *
+   * Retrieves schema information for a specific table.
+   * Returns column details including name, type, constraints, and primary key status.
+   *
+   * @param args.tableName - Name of the table to get schema for
+   * @returns Table schema with column information
+   * @throws {Error} If not connected to database
+   *
+   * @example
+   * // Get table schema
+   * sqlite_schema({ tableName: 'users' })
+   * // Returns: {
+   * //   success: true,
+   * //   table: 'users',
+   * //   columns: [
+   * //     { cid: 0, name: 'id', type: 'INTEGER', notnull: 1, dflt_value: null, pk: 1 },
+   * //     { cid: 1, name: 'name', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0 }
+   * //   ]
+   * // }
+   */
   private async handleSchema(args: { tableName: string }) {
     if (!this.db) {
       throw new Error('Not connected to a database. Use sqlite_connect first.');
@@ -292,6 +441,13 @@ class SQLiteMCPServer {
     };
   }
 
+  /**
+   * Get the number of rows affected by the last INSERT/UPDATE/DELETE
+   *
+   * @returns Number of rows changed, or 0 if no database connection
+   *
+   * @private
+   */
   private db_changes(): number {
     if (!this.db) return 0;
     const stmt = this.db.prepare('SELECT changes() as changes');
@@ -299,6 +455,17 @@ class SQLiteMCPServer {
     return result.changes;
   }
 
+  /**
+   * Start the MCP server.
+   *
+   * Connects to stdio transport and begins listening for MCP protocol messages.
+   * Logs startup message to stderr (which MCP clients ignore).
+   *
+   * @example
+   * // Start the server
+   * const server = new SQLiteMCPServer();
+   * await server.run();
+   */
   async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
@@ -307,5 +474,19 @@ class SQLiteMCPServer {
 }
 
 // Start the server
+/**
+ * Initialize and start the SQLite MCP Server.
+ *
+ * This is the entry point when running the MCP server from the command line.
+ * The server communicates over stdio using the MCP protocol.
+ *
+ * @example
+ * // Run via npm
+ * * npm run start:mcp
+ *
+ * @example
+ * // Run directly
+ * * node dist/server/index.js
+ */
 const mcpServer = new SQLiteMCPServer();
 mcpServer.run().catch(console.error);

@@ -1,0 +1,472 @@
+{
+  "info": {
+    "name": "SQLite MCP GUI API",
+    "description": "REST API for SQLite MCP GUI - A web interface for interacting with SQLite databases",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0",
+    "_postman_id": "sqlite-mcp-gui-api-collection"
+  },
+  "item": [
+    {
+      "name": "Database Operations",
+      "item": [
+        {
+          "name": "Execute Query",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dbPath\": \"/path/to/database.db\",\n  \"sql\": \"SELECT * FROM users LIMIT 10\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/query",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "query"]
+            },
+            "description": "Execute SQL queries against a SQLite database. Supports SELECT, PRAGMA, INSERT, UPDATE, DELETE, and other SQL operations."
+          },
+          "response": [
+            {
+              "name": "SELECT Query Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"dbPath\": \"/path/to/database.db\",\n  \"sql\": \"SELECT * FROM users LIMIT 10\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/query",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "query"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"rows\": [\n    {\"id\": 1, \"name\": \"John Doe\", \"email\": \"john@example.com\"},\n    {\"id\": 2, \"name\": \"Jane Smith\", \"email\": \"jane@example.com\"}\n  ],\n  \"rowCount\": 2\n}"
+            },
+            {
+              "name": "INSERT Query Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"dbPath\": \"/path/to/database.db\",\n  \"sql\": \"INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com')\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/query",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "query"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"changes\": 1,\n  \"message\": \"Query executed successfully\"\n}"
+            },
+            {
+              "name": "Bad Request - Missing Parameters",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"dbPath\": \"/path/to/database.db\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/query",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "query"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"dbPath and sql are required\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Set a default database path if not configured",
+                  "if (!pm.environment.get('dbPath')) {",
+                  "  pm.environment.set('dbPath', '/tmp/test.db');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Endpoints for executing SQL queries and managing database operations"
+    },
+    {
+      "name": "Table Information",
+      "item": [
+        {
+          "name": "List Tables",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dbPath\": \"/path/to/database.db\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tables",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables"]
+            },
+            "description": "List all tables in the SQLite database. Excludes SQLite system tables."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"dbPath\": \"/path/to/database.db\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/tables",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "tables"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"tables\": [\"users\", \"products\", \"orders\"]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Table Schema",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dbPath\": \"/path/to/database.db\",\n  \"tableName\": \"users\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schema",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schema"]
+            },
+            "description": "Get schema information for a specific table including column names, data types, and constraints."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"dbPath\": \"/path/to/database.db\",\n  \"tableName\": \"users\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/schema",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "schema"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"table\": \"users\",\n  \"columns\": [\n    {\"cid\": 0, \"name\": \"id\", \"type\": \"INTEGER\", \"notnull\": 1, \"dflt_value\": null, \"pk\": 1},\n    {\"cid\": 1, \"name\": \"name\", \"type\": \"TEXT\", \"notnull\": 1, \"dflt_value\": null, \"pk\": 0},\n    {\"cid\": 2, \"name\": \"email\", \"type\": \"TEXT\", \"notnull\": 0, \"dflt_value\": null, \"pk\": 0}\n  ]\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Endpoints for retrieving table and schema information"
+    },
+    {
+      "name": "Health & Metrics",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Check if the API server is running and healthy."
+          },
+          "response": [
+            {
+              "name": "Healthy",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"healthy\",\n  \"service\": \"sqlite-mcp-gui\",\n  \"timestamp\": \"2026-02-01T12:00:00.000Z\",\n  \"uptime\": 3600,\n  \"version\": \"1.0.0\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["metrics"]
+            },
+            "description": "Retrieve API usage and performance metrics."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/metrics",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["metrics"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"requests\": {\"total\": 1250, \"successful\": 1200, \"failed\": 50},\n  \"queries\": {\"total\": 800, \"selects\": 600, \"modifications\": 200},\n  \"performance\": {\"avgResponseTime\": 45, \"p95ResponseTime\": 120, \"p99ResponseTime\": 250}\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Endpoints for health checks and performance metrics"
+    },
+    {
+      "name": "Example Workflows",
+      "item": [
+        {
+          "name": "1. Create Test Database",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dbPath\": \"/tmp/test.db\",\n  \"sql\": \"CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, email TEXT, active INTEGER DEFAULT 1)\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/query",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "query"]
+            },
+            "description": "Step 1: Create a test database with a users table"
+          }
+        },
+        {
+          "name": "2. Insert Sample Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dbPath\": \"/tmp/test.db\",\n  \"sql\": \"INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com'), ('Jane Smith', 'jane@example.com'), ('Bob Wilson', 'bob@example.com')\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/query",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "query"]
+            },
+            "description": "Step 2: Insert sample data into the users table"
+          }
+        },
+        {
+          "name": "3. Query All Users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dbPath\": \"/tmp/test.db\",\n  \"sql\": \"SELECT * FROM users\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/query",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "query"]
+            },
+            "description": "Step 3: Query all users from the database"
+          }
+        },
+        {
+          "name": "4. Get Table Schema",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dbPath\": \"/tmp/test.db\",\n  \"tableName\": \"users\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schema",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schema"]
+            },
+            "description": "Step 4: Get the schema of the users table"
+          }
+        },
+        {
+          "name": "5. Count Active Users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dbPath\": \"/tmp/test.db\",\n  \"sql\": \"SELECT COUNT(*) as active_users FROM users WHERE active = 1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/query",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "query"]
+            },
+            "description": "Step 5: Count active users with aggregation"
+          }
+        }
+      ],
+      "description": "Common workflow examples for database operations"
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "dbPath",
+      "value": "/tmp/test.db",
+      "type": "string"
+    }
+  ]
+}
