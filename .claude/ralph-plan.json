@@ -1,0 +1,180 @@
+{
+  "subtasks": [
+    {
+      "id": "1",
+      "title": "Verify TypeScript compilation",
+      "description": "Run TypeScript compiler to ensure all modules compile without errors. Check for type mismatches, missing imports, and configuration issues.",
+      "rationale": "Project has extensive TypeScript code across 7 modules. Compilation check ensures code integrity before testing. Using existing tsconfig.json with Node16 module resolution.",
+      "status": "pending",
+      "priority": "high",
+      "estimatedComplexity": "simple",
+      "dependencies": [],
+      "files": ["tsconfig.json", "src/**/*.ts"]
+    },
+    {
+      "id": "2",
+      "title": "Create example database for testing",
+      "description": "Create a script to generate an example SQLite database with sample tables (users, products, orders) for testing the UI and CLI.",
+      "rationale": "README mentions 'example.db' creation script but file doesn't exist in src/scripts/. Creating this enables users to quickly test the GUI. Using better-sqlite3 which is already a dependency.",
+      "status": "pending",
+      "priority": "high",
+      "estimatedComplexity": "simple",
+      "dependencies": [],
+      "files": ["src/scripts/create-example-db.ts"]
+    },
+    {
+      "id": "3",
+      "title": "Build project with npm run build",
+      "description": "Execute npm run build to compile TypeScript to JavaScript in dist/ directory. Verify build output is correct.",
+      "rationale": "Package.json has build script configured. Must verify successful compilation before testing or running the server. Build output goes to dist/ as configured in tsconfig.json.",
+      "status": "pending",
+      "priority": "high",
+      "estimatedComplexity": "simple",
+      "dependencies": ["1"],
+      "files": ["dist/**/*.js"]
+    },
+    {
+      "id": "4",
+      "title": "Test MCP Server functionality",
+      "description": "Run the MCP server and verify all 5 tools work: sqlite_connect, sqlite_query, sqlite_execute, sqlite_tables, sqlite_schema. Test with example database.",
+      "rationale": "MCP server is core functionality. Must verify stdio transport works correctly and all tools respond properly. Using existing better-sqlite3 integration.",
+      "status": "pending",
+      "priority": "high",
+      "estimatedComplexity": "medium",
+      "dependencies": ["2", "3"],
+      "files": ["dist/server/index.js"]
+    },
+    {
+      "id": "5",
+      "title": "Test Web UI server startup",
+      "description": "Start the Express web server on port 3000. Verify all endpoints are accessible: /health, /api/query, /api/tables, /api/schema, /auth/*, /api/import, /api/export, /api/websocket/info.",
+      "rationale": "Web UI server integrates all modules (auth, WebSocket, monitoring, import/export). Must verify server starts without errors and all endpoints respond. Using existing PORT=3000 default.",
+      "status": "pending",
+      "priority": "high",
+      "estimatedComplexity": "medium",
+      "dependencies": ["3"],
+      "files": ["dist/ui/server.js"]
+    },
+    {
+      "id": "6",
+      "title": "Test CLI commands",
+      "description": "Test all CLI commands: query, tables, schema, stats, backup, export, shell, config. Verify output formats (json, csv, table) work correctly.",
+      "rationale": "CLI is a primary user interface. Must verify commander-based CLI works with better-sqlite3 and all commands execute properly. Using existing CLI structure.",
+      "status": "pending",
+      "priority": "high",
+      "estimatedComplexity": "medium",
+      "dependencies": ["2", "3"],
+      "files": ["dist/cli/index.js"]
+    },
+    {
+      "id": "7",
+      "title": "Test authentication system",
+      "description": "Test JWT authentication flow: register user, login, access protected routes, logout, verify permissions. Test role-based access control (admin, read-write, read-only).",
+      "rationale": "Auth module uses bcrypt + JWT. Must verify password hashing, token generation, middleware protection, and role-based permissions work correctly.",
+      "status": "pending",
+      "priority": "medium",
+      "estimatedComplexity": "medium",
+      "dependencies": ["5"],
+      "files": ["dist/auth/**/*.js", "dist/ui/server.js"]
+    },
+    {
+      "id": "8",
+      "title": "Test WebSocket real-time updates",
+      "description": "Test WebSocket connection at /ws path. Verify message broadcasting, query notifications, table change notifications, and connection management.",
+      "rationale": "WebSocket module provides real-time collaboration. Must verify ws server integrates with Express and handles messages correctly. Using ws library with heartbeat.",
+      "status": "pending",
+      "priority": "medium",
+      "estimatedComplexity": "medium",
+      "dependencies": ["5"],
+      "files": ["dist/websocket/**/*.js"]
+    },
+    {
+      "id": "9",
+      "title": "Test monitoring and metrics",
+      "description": "Test Prometheus metrics at /metrics endpoint. Verify query tracking, response time tracking, error tracking, and health check endpoints work correctly.",
+      "rationale": "Monitoring module uses prom-client. Must verify metrics collection works and /metrics endpoint outputs Prometheus format correctly.",
+      "status": "pending",
+      "priority": "medium",
+      "estimatedComplexity": "simple",
+      "dependencies": ["5"],
+      "files": ["dist/monitoring/**/*.js"]
+    },
+    {
+      "id": "10",
+      "title": "Test import/export functionality",
+      "description": "Test data import from CSV, JSON, SQL formats. Test data export to CSV, JSON, SQL formats. Verify progress tracking and WebSocket notifications during operations.",
+      "rationale": "Import/Export module handles file I/O. Must verify CSV/JSON/SQL parsing works, database transactions are correct, and progress updates are sent via WebSocket.",
+      "status": "pending",
+      "priority": "medium",
+      "estimatedComplexity": "medium",
+      "dependencies": ["5", "8"],
+      "files": ["dist/import-export/**/*.js"]
+    },
+    {
+      "id": "11",
+      "title": "Test Web UI in browser",
+      "description": "Open http://localhost:3000 in browser. Test query editor, table browser, authentication forms, import/export UI, dashboard metrics, real-time updates display.",
+      "rationale": "Web UI is single-page app with CodeMirror, tabs, and extensive JavaScript. Must verify all UI components render and interact with API correctly.",
+      "status": "pending",
+      "priority": "high",
+      "estimatedComplexity": "medium",
+      "dependencies": ["5", "7"],
+      "files": ["dist/ui/public/index.html"]
+    },
+    {
+      "id": "12",
+      "title": "Verify all dependencies are installed",
+      "description": "Check that all package.json dependencies are correctly installed. Verify better-sqlite3, @modelcontextprotocol/sdk, express, ws, prom-client, bcrypt, jsonwebtoken, etc. are available.",
+      "rationale": "Project has 15 production dependencies. Must ensure all are installed and no native module compilation issues exist (especially better-sqlite3).",
+      "status": "pending",
+      "priority": "high",
+      "estimatedComplexity": "simple",
+      "dependencies": [],
+      "files": ["package.json", "node_modules/"]
+    },
+    {
+      "id": "13",
+      "title": "Update README with usage examples",
+      "description": "Update README.md with verified usage examples for MCP server, Web UI, and CLI. Add screenshots or example output. Ensure all documented features work as described.",
+      "rationale": "README already exists and is comprehensive. Must verify all instructions work correctly and update any discrepancies found during testing.",
+      "status": "pending",
+      "priority": "low",
+      "estimatedComplexity": "simple",
+      "dependencies": ["4", "5", "6", "11"],
+      "files": ["README.md"]
+    },
+    {
+      "id": "14",
+      "title": "Commit completed SQLite MCP GUI",
+      "description": "Create git commit with all completed work. Include MCP server, Web UI, CLI, auth, WebSocket, monitoring, import/export modules, example database script, and updated documentation.",
+      "rationale": "Auto-commit is enabled. Final commit ensures all work is preserved with proper commit message following project's conventional commit style.",
+      "status": "pending",
+      "priority": "high",
+      "estimatedComplexity": "simple",
+      "dependencies": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+      "files": ["src/**/*", "dist/**/*", "README.md", "package.json"]
+    }
+  ],
+  "summary": {
+    "totalSubtasks": 14,
+    "highPriority": 10,
+    "mediumPriority": 4,
+    "lowPriority": 0,
+    "simpleComplexity": 6,
+    "mediumComplexity": 8,
+    "complexComplexity": 0,
+    "estimatedTime": "2-3 hours for full completion"
+  },
+  "existingModules": {
+    "mcpServer": "Complete with 5 tools (connect, query, execute, tables, schema)",
+    "webUIServer": "Complete with Express, auth, WebSocket, monitoring, import/export integration",
+    "cli": "Complete with 8 commands (query, tables, schema, stats, backup, export, shell, config)",
+    "authModule": "Complete with JWT, bcrypt, users, permissions, middleware",
+    "websocketModule": "Complete with ws server, heartbeat, broadcasting",
+    "monitoringModule": "Complete with Prometheus metrics, logger, health checks",
+    "importExportModule": "Complete with CSV, JSON, SQL, Excel support",
+    "webUIHTML": "Complete single-page app with CodeMirror, tabs, real-time features"
+  },
+  "workRemaining": "Build verification, testing, example database creation, and documentation updates",
+  "strategy": "Test existing infrastructure thoroughly, fix any issues found, create example DB, and complete with commit"
+}

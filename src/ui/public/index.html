@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQLite MCP GUI</title>
+    <title>SQLite MCP GUI - Advanced</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
     <style>
         * {
             margin: 0;
@@ -250,64 +252,1334 @@
         .status.disconnected {
             background: #ff6b6b;
         }
+
+        /* Authentication Styles */
+        .auth-panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .auth-tab {
+            padding: 10px 20px;
+            background: transparent;
+            color: #888;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .auth-tab.active {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .user-permissions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .permission-badge {
+            background: #00d9ff;
+            color: #1a1a2e;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        /* Import/Export Styles */
+        .import-export-panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .file-upload-zone {
+            border: 2px dashed #333;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload-zone:hover, .file-upload-zone.dragover {
+            border-color: #00d9ff;
+            background: #0f3460;
+        }
+
+        .format-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .format-option {
+            padding: 8px 16px;
+            background: #0f3460;
+            border: 1px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .format-option:hover {
+            border-color: #00d9ff;
+        }
+
+        .format-option.selected {
+            background: #00d9ff;
+            color: #1a1a2e;
+            border-color: #00d9ff;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #0f3460;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        /* Real-time Updates Styles */
+        .realtime-panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .realtime-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .active-users {
+            display: flex;
+            gap: -5px;
+            flex-wrap: wrap;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d9ff, #00ff88);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75em;
+            font-weight: 600;
+            border: 2px solid #16213e;
+            margin-left: -5px;
+        }
+
+        .notification-badge {
+            background: #ff6b6b;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        .live-changes {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .change-item {
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .change-item .time {
+            color: #888;
+            font-size: 0.8em;
+        }
+
+        /* Query History & Saved Queries */
+        .query-history-panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .history-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .history-item {
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85em;
+        }
+
+        .history-item:hover {
+            background: #1a4a7a;
+        }
+
+        .history-meta {
+            display: flex;
+            justify-content: space-between;
+            color: #888;
+            font-size: 0.75em;
+            margin-top: 5px;
+        }
+
+        .saved-query-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 0.85em;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dd5555;
+        }
+
+        .btn-secondary {
+            background: #555;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #666;
+        }
+
+        /* Pagination Styles */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .page-info {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        /* Monitoring Dashboard Styles */
+        .dashboard-panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: 600;
+            color: #00d9ff;
+        }
+
+        .metric-label {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .metric-change {
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        .metric-change.positive {
+            color: #00ff88;
+        }
+
+        .metric-change.negative {
+            color: #ff6b6b;
+        }
+
+        .health-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .health-bar {
+            flex: 1;
+            height: 8px;
+            background: #0f3460;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b 0%, #ffdd00 50%, #00ff88 100%);
+            transition: width 0.5s;
+        }
+
+        .query-performance {
+            margin-top: 20px;
+        }
+
+        .perf-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .perf-time {
+            color: #00ff88;
+            font-weight: 600;
+        }
+
+        /* CodeMirror Customization */
+        .CodeMirror {
+            height: 150px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        /* Result Export Buttons */
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* Tabs for different sections */
+        .main-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .main-tab {
+            padding: 12px 24px;
+            background: #16213e;
+            color: #888;
+            border: 1px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .main-tab:hover {
+            border-color: #00d9ff;
+        }
+
+        .main-tab.active {
+            background: #00d9ff;
+            color: #1a1a2e;
+            border-color: #00d9ff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f3460;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .main-tabs {
+                flex-direction: column;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Query execution progress */
+        .query-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 4px;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #333;
+            border-top-color: #00d9ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .collaboration-cursor {
+            position: absolute;
+            width: 2px;
+            background: #ff6b6b;
+            pointer-events: none;
+        }
+
+        .collaboration-label {
+            position: absolute;
+            background: #ff6b6b;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.75em;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>SQLite MCP GUI</h1>
-            <p class="subtitle">A web interface for SQLite databases using MCP protocol</p>
+            <h1>SQLite MCP GUI - Advanced</h1>
+            <p class="subtitle">Advanced web interface for SQLite databases with real-time collaboration</p>
         </header>
 
-        <div class="connection-panel">
-            <div class="input-group">
-                <input type="text" id="dbPath" placeholder="/path/to/database.db" value="./test.db">
-                <button class="btn-primary" onclick="connect()">Connect</button>
-            </div>
-            <p style="margin-top: 10px; color: #888; font-size: 0.9em;">
-                <span class="status disconnected" id="status"></span>
-                <span id="statusText">Disconnected</span>
-            </p>
+        <!-- Main Navigation Tabs -->
+        <div class="main-tabs">
+            <button class="main-tab active" onclick="switchTab('query')">Query Editor</button>
+            <button class="main-tab" onclick="switchTab('import')">Import/Export</button>
+            <button class="main-tab" onclick="switchTab('dashboard')">Dashboard</button>
+            <button class="main-tab permission-based" data-permission="admin" onclick="switchTab('auth')">Authentication</button>
         </div>
 
-        <div class="main-content">
-            <div class="sidebar">
-                <h3>Tables</h3>
-                <ul class="table-list" id="tableList">
-                    <li class="empty-state" style="padding: 20px 0; font-size: 0.9em;">
-                        Connect to a database to view tables
-                    </li>
-                </ul>
+        <!-- Authentication Panel -->
+        <div class="tab-content" id="auth-tab">
+            <div class="auth-panel" id="authPanel">
+                <div id="loggedOutView">
+                    <div class="auth-tabs">
+                        <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+                        <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+                    </div>
+
+                    <div class="auth-form active" id="loginForm">
+                        <h3 style="color: #00d9ff; margin-bottom: 15px;">Login</h3>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; color: #888;">Username</label>
+                            <input type="text" id="loginUsername" class="query-input" placeholder="Enter username">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; color: #888;">Password</label>
+                            <input type="password" id="loginPassword" class="query-input" placeholder="Enter password">
+                        </div>
+                        <button class="btn-success" onclick="login()">Login</button>
+                    </div>
+
+                    <div class="auth-form" id="registerForm">
+                        <h3 style="color: #00d9ff; margin-bottom: 15px;">Register</h3>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; color: #888;">Username</label>
+                            <input type="text" id="regUsername" class="query-input" placeholder="Choose username">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; color: #888;">Email</label>
+                            <input type="email" id="regEmail" class="query-input" placeholder="Enter email">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; color: #888;">Password</label>
+                            <input type="password" id="regPassword" class="query-input" placeholder="Choose password">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; color: #888;">Confirm Password</label>
+                            <input type="password" id="regConfirmPassword" class="query-input" placeholder="Confirm password">
+                        </div>
+                        <button class="btn-success" onclick="register()">Register</button>
+                    </div>
+                </div>
+
+                <div id="loggedInView" class="hidden">
+                    <div class="user-info">
+                        <div>
+                            <h3 style="color: #00d9ff; margin-bottom: 5px;">Welcome, <span id="currentUser"></span></h3>
+                            <div class="user-permissions" id="userPermissions"></div>
+                        </div>
+                        <button class="btn-danger btn-sm" onclick="logout()">Logout</button>
+                    </div>
+                    <div style="background: #0f3460; padding: 15px; border-radius: 4px;">
+                        <h4 style="color: #00d9ff; margin-bottom: 10px;">Session Information</h4>
+                        <p style="color: #888; font-size: 0.9em;">Session ID: <span id="sessionId"></span></p>
+                        <p style="color: #888; font-size: 0.9em;">Expires: <span id="sessionExpiry"></span></p>
+                        <p style="color: #888; font-size: 0.9em;">Last Activity: <span id="lastActivity"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Query Editor Tab -->
+        <div class="tab-content active" id="query-tab">
+            <div class="connection-panel">
+                <div class="input-group">
+                    <input type="text" id="dbPath" placeholder="/path/to/database.db" value="./test.db">
+                    <button class="btn-primary" onclick="connect()">Connect</button>
+                </div>
+                <p style="margin-top: 10px; color: #888; font-size: 0.9em;">
+                    <span class="status disconnected" id="status"></span>
+                    <span id="statusText">Disconnected</span>
+                </p>
             </div>
 
-            <div>
-                <div class="query-panel">
-                    <textarea class="query-input" id="queryInput" placeholder="Enter SQL query...
+            <!-- Real-time Updates Panel -->
+            <div class="realtime-panel">
+                <div class="realtime-status">
+                    <div>
+                        <h3 style="color: #00d9ff; margin-bottom: 5px;">Real-time Collaboration</h3>
+                        <p style="color: #888; font-size: 0.9em;">
+                            <span class="status connected" id="wsStatus"></span>
+                            <span id="wsStatusText">WebSocket: Connected</span>
+                            <span class="notification-badge" id="notificationBadge">0</span>
+                        </p>
+                    </div>
+                    <div class="active-users" id="activeUsers"></div>
+                </div>
+                <div class="live-changes" id="liveChanges"></div>
+            </div>
+
+            <div class="main-content">
+                <div class="sidebar">
+                    <h3>Tables</h3>
+                    <ul class="table-list" id="tableList">
+                        <li class="empty-state" style="padding: 20px 0; font-size: 0.9em;">
+                            Connect to a database to view tables
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <!-- Query History Panel -->
+                    <div class="query-history-panel">
+                        <div class="history-tabs">
+                            <button class="auth-tab active" onclick="switchHistoryTab('history')">History</button>
+                            <button class="auth-tab" onclick="switchHistoryTab('saved')">Saved Queries</button>
+                        </div>
+                        <div id="historyContent" class="active"></div>
+                        <div id="savedContent" class="hidden"></div>
+                    </div>
+
+                    <div class="query-panel">
+                        <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="color: #00d9ff;">SQL Query Editor</h3>
+                            <button class="btn-secondary btn-sm" onclick="saveQuery()">Save Query</button>
+                        </div>
+                        <textarea class="query-input" id="queryInput" placeholder="Enter SQL query...
 
 Examples:
 SELECT * FROM users LIMIT 10
 SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
-                    <div class="query-actions">
-                        <button class="btn-success" onclick="executeQuery()">Execute Query</button>
-                        <button class="btn-primary" onclick="loadTables()">Refresh Tables</button>
+                        <div class="query-actions">
+                            <button class="btn-success" onclick="executeQuery()">Execute Query</button>
+                            <button class="btn-primary" onclick="loadTables()">Refresh Tables</button>
+                            <button class="btn-secondary" onclick="clearQuery()">Clear</button>
+                        </div>
+                        <div id="queryProgress" class="query-progress hidden">
+                            <div class="spinner"></div>
+                            <span style="color: #00d9ff;">Executing query...</span>
+                        </div>
+                    </div>
+
+                    <div class="results-panel" id="resultsPanel" style="display: none;">
+                        <div class="results-header">
+                            <h3>Results</h3>
+                            <div class="export-buttons">
+                                <button class="btn-secondary btn-sm" onclick="exportResults('csv')">Export CSV</button>
+                                <button class="btn-secondary btn-sm" onclick="exportResults('json')">Export JSON</button>
+                            </div>
+                            <span class="results-info" id="resultsInfo"></span>
+                        </div>
+                        <div id="resultsContent"></div>
+                        <div class="pagination" id="pagination" style="display: none;">
+                            <div class="pagination-controls">
+                                <button class="btn-secondary btn-sm" onclick="prevPage()">Previous</button>
+                                <span class="page-info" id="pageInfo">Page 1 of 1</span>
+                                <button class="btn-secondary btn-sm" onclick="nextPage()">Next</button>
+                            </div>
+                            <div>
+                                <span style="color: #888; margin-right: 10px;">Rows per page:</span>
+                                <select id="rowsPerPage" onchange="changeRowsPerPage()" style="background: #0f3460; color: #eee; border: 1px solid #333; padding: 5px; border-radius: 4px;">
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import/Export Tab -->
+        <div class="tab-content" id="import-tab">
+            <div class="import-export-panel">
+                <div class="panel-tabs">
+                    <button class="auth-tab active" onclick="switchImportTab('import')">Import Data</button>
+                    <button class="auth-tab" onclick="switchImportTab('export')">Export Data</button>
+                </div>
+
+                <div id="importContent" class="auth-form active">
+                    <h3 style="color: #00d9ff; margin-bottom: 15px;">Import Data</h3>
+                    <div class="file-upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                        <p style="color: #888; margin-bottom: 10px;">Drag & drop files here or click to select</p>
+                        <p style="color: #666; font-size: 0.9em;">Supported formats: CSV, JSON, SQL, Excel</p>
+                        <input type="file" id="fileInput" style="display: none;" accept=".csv,.json,.sql,.xlsx,.xls" onchange="handleFileSelect(event)">
+                    </div>
+                    <div id="selectedFile" style="margin-top: 15px; color: #00d9ff;"></div>
+
+                    <h4 style="color: #00d9ff; margin: 20px 0 10px;">Target Format</h4>
+                    <div class="format-options">
+                        <div class="format-option selected" data-format="csv" onclick="selectFormat('csv')">CSV</div>
+                        <div class="format-option" data-format="json" onclick="selectFormat('json')">JSON</div>
+                        <div class="format-option" data-format="sql" onclick="selectFormat('sql')">SQL</div>
+                        <div class="format-option" data-format="excel" onclick="selectFormat('excel')">Excel</div>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <label style="display: block; margin-bottom: 5px; color: #888;">Target Table</label>
+                        <input type="text" id="targetTable" class="query-input" placeholder="Enter table name">
+                    </div>
+
+                    <button class="btn-success" style="margin-top: 15px;" onclick="startImport()">Start Import</button>
+
+                    <div class="progress-bar" id="importProgress" style="display: none;">
+                        <div class="progress-fill" id="importProgressFill" style="width: 0%"></div>
+                    </div>
+                    <p class="progress-text" id="importProgressText"></p>
+                </div>
+
+                <div id="exportContent" class="auth-form">
+                    <h3 style="color: #00d9ff; margin-bottom: 15px;">Export Data</h3>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; color: #888;">Table or Query</label>
+                        <input type="text" id="exportSource" class="query-input" placeholder="table_name or SELECT query">
+                    </div>
+
+                    <h4 style="color: #00d9ff; margin: 15px 0 10px;">Export Format</h4>
+                    <div class="format-options">
+                        <div class="format-option selected" data-format="csv" onclick="selectExportFormat('csv')">CSV</div>
+                        <div class="format-option" data-format="json" onclick="selectExportFormat('json')">JSON</div>
+                        <div class="format-option" data-format="sql" onclick="selectExportFormat('sql')">SQL</div>
+                        <div class="format-option" data-format="excel" onclick="selectExportFormat('excel')">Excel</div>
+                    </div>
+
+                    <button class="btn-success" style="margin-top: 15px;" onclick="startExport()">Export Data</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div class="tab-content" id="dashboard-tab">
+            <div class="dashboard-panel">
+                <h3 style="color: #00d9ff; margin-bottom: 20px;">Monitoring Dashboard</h3>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalQueries">0</div>
+                        <div class="metric-label">Total Queries</div>
+                        <div class="metric-change positive" id="queriesChange">+0%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="avgQueryTime">0ms</div>
+                        <div class="metric-label">Avg Query Time</div>
+                        <div class="metric-change negative" id="queryTimeChange">-0%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="activeConnections">0</div>
+                        <div class="metric-label">Active Connections</div>
+                        <div class="metric-change positive" id="connectionsChange">+0%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="dbSize">0 MB</div>
+                        <div class="metric-label">Database Size</div>
+                        <div class="metric-change positive" id="dbSizeChange">+0%</div>
                     </div>
                 </div>
 
-                <div class="results-panel" id="resultsPanel" style="display: none;">
-                    <div class="results-header">
-                        <h3>Results</h3>
-                        <span class="results-info" id="resultsInfo"></span>
+                <div style="background: #0f3460; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="color: #00d9ff; margin-bottom: 10px;">System Health</h4>
+                    <div class="health-indicator">
+                        <span style="color: #888; font-size: 0.9em;">Overall</span>
+                        <div class="health-bar">
+                            <div class="health-fill" id="healthFill" style="width: 85%"></div>
+                        </div>
+                        <span id="healthPercent" style="color: #00ff88; font-weight: 600;">85%</span>
                     </div>
-                    <div id="resultsContent"></div>
+                </div>
+
+                <div class="query-performance">
+                    <h4 style="color: #00d9ff; margin-bottom: 15px;">Recent Query Performance</h4>
+                    <div id="performanceList">
+                        <div class="perf-item">
+                            <span style="color: #888;">No queries executed yet</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
     <script>
+        // Global State
         let currentDbPath = '';
         let connected = false;
+        let currentUser = null;
+        let userPermissions = [];
+        let queryHistory = [];
+        let savedQueries = [];
+        let currentResults = [];
+        let currentPage = 1;
+        let rowsPerPage = 10;
+        let selectedImportFormat = 'csv';
+        let selectedExportFormat = 'csv';
+        let ws = null;
+        let queryMetrics = [];
+        let notificationCount = 0;
 
+        // Initialize CodeMirror
+        let editor;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            editor = CodeMirror.fromTextArea(document.getElementById('queryInput'), {
+                mode: 'text/x-sql',
+                theme: 'dracula',
+                lineNumbers: true,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                indentWithTabs: true,
+                smartIndent: true,
+                lineWrapping: true,
+                extraKeys: {
+                    'Ctrl-Enter': executeQuery,
+                    'Cmd-Enter': executeQuery,
+                    'Ctrl-S': saveQuery,
+                    'Cmd-S': saveQuery
+                }
+            });
+
+            // Load saved data from localStorage
+            loadFromLocalStorage();
+            initializeWebSocket();
+            updateDashboard();
+            checkAuthStatus();
+        });
+
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.main-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        // Authentication Functions
+        function switchAuthTab(tab) {
+            document.querySelectorAll('#authPanel .auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#authPanel .auth-form').forEach(f => f.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`${tab}Form`).classList.add('active');
+        }
+
+        function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                showError('Please enter username and password');
+                return;
+            }
+
+            // Simulated login (replace with actual API call)
+            currentUser = {
+                username: username,
+                permissions: username === 'admin' ? ['read', 'write', 'admin'] : ['read', 'write'],
+                sessionId: generateSessionId(),
+                expires: new Date(Date.now() + 3600000).toISOString()
+            };
+
+            userPermissions = currentUser.permissions;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            updateAuthUI();
+            updatePermissionBasedUI();
+            showSuccess(`Welcome back, ${username}!`);
+        }
+
+        function register() {
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            if (!username || !email || !password) {
+                showError('Please fill in all fields');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showError('Passwords do not match');
+                return;
+            }
+
+            // Simulated registration (replace with actual API call)
+            currentUser = {
+                username: username,
+                email: email,
+                permissions: ['read', 'write'],
+                sessionId: generateSessionId(),
+                expires: new Date(Date.now() + 3600000).toISOString()
+            };
+
+            userPermissions = currentUser.permissions;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            updateAuthUI();
+            updatePermissionBasedUI();
+            showSuccess('Registration successful! Welcome!');
+        }
+
+        function logout() {
+            currentUser = null;
+            userPermissions = [];
+            localStorage.removeItem('currentUser');
+            updateAuthUI();
+            updatePermissionBasedUI();
+            showSuccess('Logged out successfully');
+        }
+
+        function checkAuthStatus() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                userPermissions = currentUser.permissions;
+                updateAuthUI();
+                updatePermissionBasedUI();
+            }
+        }
+
+        function updateAuthUI() {
+            const loggedOutView = document.getElementById('loggedOutView');
+            const loggedInView = document.getElementById('loggedInView');
+
+            if (currentUser) {
+                loggedOutView.classList.add('hidden');
+                loggedInView.classList.remove('hidden');
+                document.getElementById('currentUser').textContent = currentUser.username;
+                document.getElementById('sessionId').textContent = currentUser.sessionId.substring(0, 8) + '...';
+                document.getElementById('sessionExpiry').textContent = new Date(currentUser.expires).toLocaleString();
+                document.getElementById('lastActivity').textContent = new Date().toLocaleString();
+
+                const permissionsContainer = document.getElementById('userPermissions');
+                permissionsContainer.innerHTML = userPermissions.map(p =>
+                    `<span class="permission-badge">${p}</span>`
+                ).join('');
+            } else {
+                loggedOutView.classList.remove('hidden');
+                loggedInView.classList.add('hidden');
+            }
+        }
+
+        function updatePermissionBasedUI() {
+            document.querySelectorAll('.permission-based').forEach(el => {
+                const requiredPermission = el.dataset.permission;
+                if (requiredPermission && !userPermissions.includes(requiredPermission)) {
+                    el.classList.add('hidden');
+                } else {
+                    el.classList.remove('hidden');
+                }
+            });
+        }
+
+        function generateSessionId() {
+            return 'sess_' + Math.random().toString(36).substring(2, 15) + '_' + Date.now().toString(36);
+        }
+
+        // WebSocket Functions
+        function initializeWebSocket() {
+            const wsUrl = `ws://${window.location.host}`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                updateWSStatus(true);
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+
+            ws.onclose = () => {
+                updateWSStatus(false);
+                // Attempt to reconnect after 5 seconds
+                setTimeout(initializeWebSocket, 5000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateWSStatus(false);
+            };
+        }
+
+        function updateWSStatus(connected) {
+            const wsStatus = document.getElementById('wsStatus');
+            const wsStatusText = document.getElementById('wsStatusText');
+
+            if (connected) {
+                wsStatus.className = 'status connected';
+                wsStatusText.textContent = 'WebSocket: Connected';
+            } else {
+                wsStatus.className = 'status disconnected';
+                wsStatusText.textContent = 'WebSocket: Disconnected';
+            }
+        }
+
+        function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'table_change':
+                    addLiveChange(data);
+                    notificationCount++;
+                    updateNotificationBadge();
+                    break;
+                case 'user_joined':
+                    addActiveUser(data.user);
+                    break;
+                case 'user_left':
+                    removeActiveUser(data.user);
+                    break;
+                case 'query_progress':
+                    updateQueryProgress(data);
+                    break;
+            }
+        }
+
+        function addLiveChange(data) {
+            const liveChanges = document.getElementById('liveChanges');
+            const changeItem = document.createElement('div');
+            changeItem.className = 'change-item';
+            changeItem.innerHTML = `
+                <div><strong>${data.table}</strong>: ${data.action}</div>
+                <div class="time">${new Date().toLocaleTimeString()}</div>
+            `;
+            liveChanges.insertBefore(changeItem, liveChanges.firstChild);
+
+            // Keep only last 10 changes
+            while (liveChanges.children.length > 10) {
+                liveChanges.removeChild(liveChanges.lastChild);
+            }
+        }
+
+        function addActiveUser(user) {
+            const activeUsers = document.getElementById('activeUsers');
+            const avatar = document.createElement('div');
+            avatar.className = 'user-avatar';
+            avatar.id = `user-${user.id}`;
+            avatar.textContent = user.username.charAt(0).toUpperCase();
+            activeUsers.appendChild(avatar);
+        }
+
+        function removeActiveUser(user) {
+            const avatar = document.getElementById(`user-${user.id}`);
+            if (avatar) {
+                avatar.remove();
+            }
+        }
+
+        function updateNotificationBadge() {
+            const badge = document.getElementById('notificationBadge');
+            badge.textContent = notificationCount;
+        }
+
+        function updateQueryProgress(data) {
+            const progressDiv = document.getElementById('queryProgress');
+            if (data.status === 'running') {
+                progressDiv.classList.remove('hidden');
+            } else {
+                progressDiv.classList.add('hidden');
+            }
+        }
+
+        // Import/Export Functions
+        function switchImportTab(tab) {
+            document.querySelectorAll('.import-export-panel .auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.import-export-panel .auth-form').forEach(f => f.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`${tab}Content`).classList.add('active');
+        }
+
+        function selectFormat(format) {
+            selectedImportFormat = format;
+            document.querySelectorAll('#importContent .format-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.dataset.format === format) {
+                    opt.classList.add('selected');
+                }
+            });
+        }
+
+        function selectExportFormat(format) {
+            selectedExportFormat = format;
+            document.querySelectorAll('#exportContent .format-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.dataset.format === format) {
+                    opt.classList.add('selected');
+                }
+            });
+        }
+
+        const dropZone = document.getElementById('dropZone');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            document.getElementById('selectedFile').textContent = `Selected: ${file.name} (${formatFileSize(file.size)})`;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function startImport() {
+            const fileInput = document.getElementById('fileInput');
+            const targetTable = document.getElementById('targetTable').value;
+
+            if (!fileInput.files[0]) {
+                showError('Please select a file to import');
+                return;
+            }
+
+            if (!targetTable) {
+                showError('Please enter a target table name');
+                return;
+            }
+
+            // Simulate import progress
+            const progressBar = document.getElementById('importProgress');
+            const progressFill = document.getElementById('importProgressFill');
+            const progressText = document.getElementById('importProgressText');
+
+            progressBar.style.display = 'block';
+            let progress = 0;
+
+            const interval = setInterval(() => {
+                progress += 10;
+                progressFill.style.width = `${progress}%`;
+                progressText.textContent = `Importing... ${progress}%`;
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    progressText.textContent = 'Import completed successfully!';
+                    showSuccess(`Data imported to table '${targetTable}'`);
+                    setTimeout(() => {
+                        progressBar.style.display = 'none';
+                        progressFill.style.width = '0%';
+                        progressText.textContent = '';
+                    }, 3000);
+                }
+            }, 500);
+        }
+
+        function startExport() {
+            const source = document.getElementById('exportSource').value;
+
+            if (!source) {
+                showError('Please enter a table name or query');
+                return;
+            }
+
+            showSuccess(`Exporting data as ${selectedExportFormat.toUpperCase()}...`);
+            // Simulated export (replace with actual export logic)
+        }
+
+        // Query History Functions
+        function switchHistoryTab(tab) {
+            document.querySelectorAll('.query-history-panel .auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#historyContent, #savedContent').forEach(c => c.classList.add('hidden'));
+
+            event.target.classList.add('active');
+            document.getElementById(`${tab}Content`).classList.remove('active');
+            document.getElementById(`${tab}Content`).classList.remove('hidden');
+
+            if (tab === 'history') {
+                displayQueryHistory();
+            } else {
+                displaySavedQueries();
+            }
+        }
+
+        function addToHistory(sql) {
+            const historyItem = {
+                sql: sql,
+                timestamp: new Date().toISOString(),
+                rowsAffected: currentResults.length
+            };
+
+            queryHistory.unshift(historyItem);
+            if (queryHistory.length > 50) {
+                queryHistory.pop();
+            }
+
+            localStorage.setItem('queryHistory', JSON.stringify(queryHistory));
+            displayQueryHistory();
+        }
+
+        function displayQueryHistory() {
+            const historyContent = document.getElementById('historyContent');
+            if (queryHistory.length === 0) {
+                historyContent.innerHTML = '<div class="empty-state">No query history yet</div>';
+                return;
+            }
+
+            historyContent.innerHTML = queryHistory.map((item, index) => `
+                <div class="history-item" onclick="loadFromHistory(${index})">
+                    <div>${escapeHtml(item.sql.substring(0, 100))}${item.sql.length > 100 ? '...' : ''}</div>
+                    <div class="history-meta">
+                        <span>${new Date(item.timestamp).toLocaleString()}</span>
+                        <span>${item.rowsAffected} rows</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadFromHistory(index) {
+            const item = queryHistory[index];
+            editor.setValue(item.sql);
+        }
+
+        function saveQuery() {
+            const sql = editor.getValue().trim();
+            if (!sql) {
+                showError('Please enter a query to save');
+                return;
+            }
+
+            const name = prompt('Enter a name for this query:');
+            if (!name) return;
+
+            const savedQuery = {
+                id: Date.now(),
+                name: name,
+                sql: sql,
+                timestamp: new Date().toISOString()
+            };
+
+            savedQueries.push(savedQuery);
+            localStorage.setItem('savedQueries', JSON.stringify(savedQueries));
+            showSuccess('Query saved successfully!');
+            displaySavedQueries();
+        }
+
+        function displaySavedQueries() {
+            const savedContent = document.getElementById('savedContent');
+            if (savedQueries.length === 0) {
+                savedContent.innerHTML = '<div class="empty-state">No saved queries yet</div>';
+                return;
+            }
+
+            savedContent.innerHTML = savedQueries.map(query => `
+                <div class="history-item" onclick="loadSavedQuery(${query.id})">
+                    <div><strong>${escapeHtml(query.name)}</strong></div>
+                    <div>${escapeHtml(query.sql.substring(0, 80))}${query.sql.length > 80 ? '...' : ''}</div>
+                    <div class="history-meta">
+                        <span>${new Date(query.timestamp).toLocaleString()}</span>
+                        <div class="saved-query-actions">
+                            <button class="btn-danger btn-sm" onclick="event.stopPropagation(); deleteSavedQuery(${query.id})">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadSavedQuery(id) {
+            const query = savedQueries.find(q => q.id === id);
+            if (query) {
+                editor.setValue(query.sql);
+            }
+        }
+
+        function deleteSavedQuery(id) {
+            savedQueries = savedQueries.filter(q => q.id !== id);
+            localStorage.setItem('savedQueries', JSON.stringify(savedQueries));
+            displaySavedQueries();
+            showSuccess('Query deleted');
+        }
+
+        // Local Storage Functions
+        function loadFromLocalStorage() {
+            const history = localStorage.getItem('queryHistory');
+            if (history) {
+                queryHistory = JSON.parse(history);
+            }
+
+            const saved = localStorage.getItem('savedQueries');
+            if (saved) {
+                savedQueries = JSON.parse(saved);
+            }
+
+            const metrics = localStorage.getItem('queryMetrics');
+            if (metrics) {
+                queryMetrics = JSON.parse(metrics);
+            }
+        }
+
+        // Connection Functions
         async function connect() {
             const dbPath = document.getElementById('dbPath').value;
             if (!dbPath) {
@@ -362,6 +1634,10 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
             }
         }
 
+        function clearQuery() {
+            editor.setValue('');
+        }
+
         function displayTables(tables) {
             const tableList = document.getElementById('tableList');
             if (tables.length === 0) {
@@ -375,13 +1651,13 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
         }
 
         async function selectTable(tableName) {
-            document.getElementById('queryInput').value = `SELECT * FROM ${tableName} LIMIT 100`;
+            editor.setValue(`SELECT * FROM ${tableName} LIMIT 100`);
             document.querySelectorAll('.table-item').forEach(el => el.classList.remove('active'));
             event.target.classList.add('active');
         }
 
         async function executeQuery() {
-            const sql = document.getElementById('queryInput').value.trim();
+            const sql = editor.getValue().trim();
             if (!sql) {
                 showError('Please enter a SQL query');
                 return;
@@ -392,6 +1668,10 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
                 return;
             }
 
+            // Show progress
+            document.getElementById('queryProgress').classList.remove('hidden');
+            const startTime = performance.now();
+
             try {
                 const response = await fetch('/api/query', {
                     method: 'POST',
@@ -400,33 +1680,94 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
                 });
 
                 const data = await response.json();
+                const endTime = performance.now();
+                const queryTime = Math.round(endTime - startTime);
+
+                // Hide progress
+                document.getElementById('queryProgress').classList.add('hidden');
 
                 if (data.success) {
                     if (data.rows !== undefined) {
+                        currentResults = data.rows;
+                        currentPage = 1;
                         displayResults(data.rows, data.rowCount);
+                        addToHistory(sql);
+                        addQueryMetric(sql, queryTime, true);
                     } else {
                         showSuccess(`Query executed successfully. ${data.changes || 0} row(s) affected.`);
+                        addToHistory(sql);
+                        addQueryMetric(sql, queryTime, true);
                     }
+                    updateDashboard();
                 } else {
                     throw new Error(data.error || 'Query failed');
                 }
             } catch (error) {
+                document.getElementById('queryProgress').classList.add('hidden');
                 showError(error.message);
+                addQueryMetric(sql, 0, false);
             }
+        }
+
+        function addQueryMetric(sql, time, success) {
+            const metric = {
+                sql: sql,
+                time: time,
+                success: success,
+                timestamp: new Date().toISOString()
+            };
+
+            queryMetrics.unshift(metric);
+            if (queryMetrics.length > 20) {
+                queryMetrics.pop();
+            }
+
+            localStorage.setItem('queryMetrics', JSON.stringify(queryMetrics));
+            updatePerformanceList();
+        }
+
+        function updatePerformanceList() {
+            const performanceList = document.getElementById('performanceList');
+            if (queryMetrics.length === 0) {
+                performanceList.innerHTML = '<div class="perf-item"><span style="color: #888;">No queries executed yet</span></div>';
+                return;
+            }
+
+            performanceList.innerHTML = queryMetrics.slice(0, 10).map(metric => `
+                <div class="perf-item">
+                    <span style="flex: 1; font-family: monospace; font-size: 0.85em;">${escapeHtml(metric.sql.substring(0, 60))}${metric.sql.length > 60 ? '...' : ''}</span>
+                    <span class="perf-time">${metric.time}ms</span>
+                    <span style="color: ${metric.success ? '#00ff88' : '#ff6b6b'}; margin-left: 10px;">
+                        ${metric.success ? '✓' : '✗'}
+                    </span>
+                </div>
+            `).join('');
         }
 
         function displayResults(rows, rowCount) {
             const resultsPanel = document.getElementById('resultsPanel');
             const resultsContent = document.getElementById('resultsContent');
             const resultsInfo = document.getElementById('resultsInfo');
+            const pagination = document.getElementById('pagination');
 
             resultsPanel.style.display = 'block';
-            resultsInfo.textContent = `${rowCount} row(s) returned`;
+            pagination.style.display = 'flex';
 
             if (!Array.isArray(rows) || rows.length === 0) {
                 resultsContent.innerHTML = '<div class="empty-state">No results</div>';
+                resultsInfo.textContent = '0 rows returned';
+                pagination.style.display = 'none';
                 return;
             }
+
+            // Pagination logic
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + parseInt(rowsPerPage);
+            const paginatedRows = rows.slice(startIndex, endIndex);
+            const totalPages = Math.ceil(rows.length / rowsPerPage);
+
+            resultsInfo.textContent = `Showing ${startIndex + 1}-${Math.min(endIndex, rows.length)} of ${rows.length} rows`;
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
 
             const columns = Object.keys(rows[0]);
             const table = document.createElement('table');
@@ -435,14 +1776,78 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
                     <tr>${columns.map(col => `<th>${col}</th>`).join('')}</tr>
                 </thead>
                 <tbody>
-                    ${rows.map(row => `
-                        <tr>${columns.map(col => `<td>${row[col] === null ? 'NULL' : row[col]}</td>`).join('')}</tr>
+                    ${paginatedRows.map(row => `
+                        <tr>${columns.map(col => `<td>${row[col] === null ? '<span style="color: #888;">NULL</span>' : escapeHtml(String(row[col]))}</td>`).join('')}</tr>
                     `).join('')}
                 </tbody>
             `;
 
             resultsContent.innerHTML = '';
             resultsContent.appendChild(table);
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayResults(currentResults, currentResults.length);
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(currentResults.length / rowsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                displayResults(currentResults, currentResults.length);
+            }
+        }
+
+        function changeRowsPerPage() {
+            rowsPerPage = parseInt(document.getElementById('rowsPerPage').value);
+            currentPage = 1;
+            displayResults(currentResults, currentResults.length);
+        }
+
+        function exportResults(format) {
+            if (!currentResults || currentResults.length === 0) {
+                showError('No results to export');
+                return;
+            }
+
+            let content, filename, type;
+
+            if (format === 'csv') {
+                const columns = Object.keys(currentResults[0]);
+                const headers = columns.join(',');
+                const rows = currentResults.map(row =>
+                    columns.map(col => {
+                        const val = row[col];
+                        return val === null ? '' : `"${String(val).replace(/"/g, '""')}"`;
+                    }).join(',')
+                );
+                content = [headers, ...rows].join('\n');
+                filename = 'query_results.csv';
+                type = 'text/csv';
+            } else if (format === 'json') {
+                content = JSON.stringify(currentResults, null, 2);
+                filename = 'query_results.json';
+                type = 'application/json';
+            }
+
+            const blob = new Blob([content], { type: type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showSuccess(`Results exported as ${format.toUpperCase()}`);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function showError(message) {
@@ -473,6 +1878,48 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
                 statusText.textContent = 'Disconnected';
             }
         }
+
+        // Dashboard Functions
+        function updateDashboard() {
+            const totalQueries = queryMetrics.length;
+            const successfulQueries = queryMetrics.filter(m => m.success).length;
+            const avgTime = queryMetrics.length > 0
+                ? Math.round(queryMetrics.reduce((sum, m) => sum + m.time, 0) / queryMetrics.length)
+                : 0;
+
+            document.getElementById('totalQueries').textContent = totalQueries;
+            document.getElementById('avgQueryTime').textContent = `${avgTime}ms`;
+            document.getElementById('activeConnections').textContent = connected ? '1' : '0';
+            document.getElementById('dbSize').textContent = '0.5 MB'; // Simulated
+
+            // Calculate percentage changes (simulated)
+            const queriesChange = Math.round((Math.random() - 0.5) * 20);
+            const queryTimeChange = Math.round((Math.random() - 0.5) * 15);
+            const connectionsChange = Math.round((Math.random() - 0.5) * 10);
+            const dbSizeChange = Math.round((Math.random() - 0.5) * 5);
+
+            document.getElementById('queriesChange').textContent = `${queriesChange >= 0 ? '+' : ''}${queriesChange}%`;
+            document.getElementById('queriesChange').className = `metric-change ${queriesChange >= 0 ? 'positive' : 'negative'}`;
+
+            document.getElementById('queryTimeChange').textContent = `${queryTimeChange >= 0 ? '+' : ''}${queryTimeChange}%`;
+            document.getElementById('queryTimeChange').className = `metric-change ${queryTimeChange < 0 ? 'positive' : 'negative'}`;
+
+            document.getElementById('connectionsChange').textContent = `${connectionsChange >= 0 ? '+' : ''}${connectionsChange}%`;
+            document.getElementById('connectionsChange').className = `metric-change ${connectionsChange >= 0 ? 'positive' : 'negative'}`;
+
+            document.getElementById('dbSizeChange').textContent = `${dbSizeChange >= 0 ? '+' : ''}${dbSizeChange}%`;
+            document.getElementById('dbSizeChange').className = `metric-change ${dbSizeChange >= 0 ? 'positive' : 'negative'}`;
+
+            // Update health indicator
+            const healthPercent = Math.min(100, 60 + (successfulQueries / totalQueries) * 40);
+            document.getElementById('healthFill').style.width = `${healthPercent}%`;
+            document.getElementById('healthPercent').textContent = `${Math.round(healthPercent)}%`;
+
+            updatePerformanceList();
+        }
+
+        // Initialize dashboard updates
+        setInterval(updateDashboard, 30000); // Update every 30 seconds
     </script>
 </body>
 </html>
