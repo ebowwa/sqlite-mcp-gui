@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SQLite MCP GUI</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -251,6 +255,213 @@
             background: #ff6b6b;
         }
 
+        /* WebSocket Status */
+        .ws-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #0f3460;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .ws-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .ws-indicator.connected {
+            background: #00ff88;
+        }
+
+        .ws-indicator.connecting {
+            background: #ffa500;
+        }
+
+        .ws-indicator.disconnected {
+            background: #ff6b6b;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Notifications Panel */
+        .notifications-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .notification {
+            background: #16213e;
+            border-left: 4px solid #00d9ff;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .notification.info {
+            border-left-color: #00d9ff;
+        }
+
+        .notification.success {
+            border-left-color: #00ff88;
+        }
+
+        .notification.warning {
+            border-left-color: #ffa500;
+        }
+
+        .notification.error {
+            border-left-color: #ff6b6b;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 0;
+            font-size: 1.2em;
+            line-height: 1;
+        }
+
+        .notification-close:hover {
+            color: #eee;
+        }
+
+        .notification-body {
+            font-size: 0.85em;
+            color: #ccc;
+        }
+
+        .notification-time {
+            font-size: 0.75em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            display: none;
+            background: #0f3460;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        /* Collaboration Panel */
+        .collaboration-panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .collaboration-panel.active {
+            display: block;
+        }
+
+        .collaboration-panel h3 {
+            color: #00d9ff;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .connected-users {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #0f3460;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+
+        .user-chip-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #00d9ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a1a2e;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
         /* Login Modal Styles */
         .modal-overlay {
             display: none;
@@ -405,6 +616,1305 @@
             outline: none;
             border-color: #00d9ff;
         }
+
+        /* Query Builder Styles */
+        .query-builder-container {
+            display: none;
+        }
+
+        .query-builder-container.active {
+            display: block;
+        }
+
+        .query-builder-container {
+            display: none;
+        }
+
+        .query-builder-container.active {
+            display: block;
+        }
+
+        .qb-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+        }
+
+        .qb-tab {
+            padding: 12px 24px;
+            background: transparent;
+            color: #888;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-bottom: -2px;
+        }
+
+        .qb-tab:hover {
+            color: #00d9ff;
+        }
+
+        .qb-tab.active {
+            color: #00d9ff;
+            border-bottom-color: #00d9ff;
+        }
+
+        .qb-section {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .qb-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .qb-section-title {
+            color: #00d9ff;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .qb-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .qb-table-card {
+            background: #16213e;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: move;
+            transition: all 0.2s;
+        }
+
+        .qb-table-card:hover {
+            border-color: #00d9ff;
+        }
+
+        .qb-table-card.selected {
+            border-color: #00d9ff;
+            background: #1a4a7a;
+        }
+
+        .qb-table-name {
+            font-weight: 600;
+            color: #00d9ff;
+            margin-bottom: 10px;
+        }
+
+        .qb-column-list {
+            list-style: none;
+            margin-top: 10px;
+        }
+
+        .qb-column-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 10px;
+            margin: 4px 0;
+            background: #0f3460;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .qb-column-item:hover {
+            background: #1a4a7a;
+        }
+
+        .qb-column-item.selected {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .qb-column-checkbox {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .qb-column-type {
+            margin-left: auto;
+            font-size: 0.8em;
+            color: #888;
+        }
+
+        .qb-join-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 15px;
+            background: #16213e;
+            border-radius: 8px;
+        }
+
+        .qb-join-type, .qb-join-table, .qb-join-column {
+            padding: 8px 12px;
+            background: #0f3460;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #eee;
+            cursor: pointer;
+        }
+
+        .qb-condition-group {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .qb-condition-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .qb-condition-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 4px;
+        }
+
+        .qb-operator-select {
+            padding: 8px 12px;
+            background: #0f3460;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #eee;
+        }
+
+        .qb-value-input {
+            flex: 1;
+            padding: 8px 12px;
+            background: #16213e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #eee;
+        }
+
+        .qb-value-input:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        .qb-btn-add {
+            padding: 8px 16px;
+            background: #00ff88;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .qb-btn-add:hover {
+            background: #00dd77;
+        }
+
+        .qb-btn-remove {
+            padding: 6px 12px;
+            background: #ff6b6b;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .qb-btn-remove:hover {
+            background: #dd5555;
+        }
+
+        .qb-btn-secondary {
+            padding: 8px 16px;
+            background: transparent;
+            color: #00d9ff;
+            border: 1px solid #00d9ff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .qb-btn-secondary:hover {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .qb-sql-preview {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            color: #00ff88;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .qb-sql-keyword {
+            color: #ff79c6;
+            font-weight: 600;
+        }
+
+        .qb-sql-table {
+            color: #8be9fd;
+        }
+
+        .qb-sql-column {
+            color: #50fa7b;
+        }
+
+        .qb-relationship-diagram {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+            background: #0a0a0a;
+            border-radius: 8px;
+            min-height: 300px;
+        }
+
+        .qb-table-node {
+            background: #16213e;
+            border: 2px solid #00d9ff;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .qb-table-node-header {
+            font-weight: 600;
+            color: #00d9ff;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+        }
+
+        .qb-table-node-columns {
+            list-style: none;
+        }
+
+        .qb-table-node-column {
+            padding: 4px 0;
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .qb-table-node-column.pk {
+            color: #ffb86c;
+        }
+
+        .qb-table-node-column.fk {
+            color: #bd93f9;
+        }
+
+        .qb-relationship-line {
+            position: absolute;
+            height: 2px;
+            background: #00d9ff;
+            transform-origin: left center;
+        }
+
+        .qb-templates-panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .qb-template-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: #0f3460;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .qb-template-item:hover {
+            background: #1a4a7a;
+        }
+
+        .qb-template-name {
+            font-weight: 600;
+        }
+
+        .qb-template-date {
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .qb-advanced-section {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .qb-advanced-header {
+            color: #00d9ff;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .qb-subquery-builder {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .qb-union-builder {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .qb-cte-builder {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .qb-aggregate-builder {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .qb-case-builder {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .qb-case-when {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #16213e;
+            border-radius: 4px;
+        }
+
+        .qb-validation-message {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .qb-validation-message.error {
+            background: #3a1a1a;
+            color: #ff6b6b;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .qb-validation-message.success {
+            background: #1a3a1a;
+            color: #00ff88;
+            border-left: 4px solid #00ff88;
+        }
+
+        .qb-validation-message.warning {
+            background: #3a3a1a;
+            color: #ffdd55;
+            border-left: 4px solid #ffdd55;
+        }
+
+        .qb-explain-plan {
+            background: #0a0a0a;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            color: #888;
+            margin-top: 15px;
+        }
+
+        .qb-explain-plan-row {
+            padding: 5px 0;
+            border-bottom: 1px solid #222;
+        }
+
+        .qb-explain-plan-detail {
+            padding-left: 20px;
+            color: #666;
+        }
+
+        select {
+            padding: 8px 12px;
+            background: #0f3460;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #eee;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        .qb-drag-handle {
+            cursor: grab;
+            display: inline-block;
+            margin-right: 8px;
+            color: #888;
+        }
+
+        .qb-drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .qb-divider {
+            height: 1px;
+            background: #333;
+            margin: 15px 0;
+        }
+
+        /* Database Comparison Styles */
+        .tab-nav {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+        }
+
+        .tab-button {
+            padding: 12px 24px;
+            background: transparent;
+            color: #888;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-bottom: -2px;
+        }
+
+        .tab-button:hover {
+            color: #00d9ff;
+        }
+
+        .tab-button.active {
+            color: #00d9ff;
+            border-bottom-color: #00d9ff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .compare-panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .compare-databases {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .db-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .db-input-group label {
+            color: #888;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .vs-divider {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #00d9ff;
+            text-align: center;
+        }
+
+        .compare-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: #333;
+            color: #eee;
+        }
+
+        .btn-secondary:hover {
+            background: #444;
+        }
+
+        .btn-warning {
+            background: #ff9500;
+            color: #1a1a2e;
+        }
+
+        .btn-warning:hover {
+            background: #ff8000;
+        }
+
+        .diff-view {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .diff-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .diff-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .diff-stat {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .diff-stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .diff-stat-label {
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .diff-stat.added .diff-stat-value {
+            color: #00ff88;
+        }
+
+        .diff-stat.removed .diff-stat-value {
+            color: #ff6b6b;
+        }
+
+        .diff-stat.modified .diff-stat-value {
+            color: #ff9500;
+        }
+
+        .diff-section {
+            margin-bottom: 25px;
+        }
+
+        .diff-section h4 {
+            color: #00d9ff;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+        }
+
+        .diff-item {
+            background: #0f3460;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border-left: 3px solid #888;
+        }
+
+        .diff-item.added {
+            border-left-color: #00ff88;
+        }
+
+        .diff-item.removed {
+            border-left-color: #ff6b6b;
+        }
+
+        .diff-item.modified {
+            border-left-color: #ff9500;
+        }
+
+        .diff-item-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .diff-item-badge {
+            background: #333;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.75em;
+            color: #888;
+        }
+
+        .diff-item.added .diff-item-badge {
+            background: #00ff88;
+            color: #1a1a2e;
+        }
+
+        .diff-item.removed .diff-item-badge {
+            background: #ff6b6b;
+            color: #1a1a2e;
+        }
+
+        .diff-item.modified .diff-item-badge {
+            background: #ff9500;
+            color: #1a1a2e;
+        }
+
+        .diff-details {
+            font-size: 0.9em;
+            color: #aaa;
+            margin-top: 8px;
+        }
+
+        .diff-detail-item {
+            padding: 4px 0;
+            padding-left: 15px;
+        }
+
+        .diff-detail-item::before {
+            content: "•";
+            margin-right: 8px;
+            color: #666;
+        }
+
+        .sync-panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .sync-options {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .sync-direction {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .sync-direction label {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .sync-preview {
+            background: #0f3460;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .sql-preview {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            color: #00ff88;
+            line-height: 1.5;
+        }
+
+        .export-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: #00d9ff;
+            transition: width 0.3s;
+        }
+
+        .comparison-loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .comparison-loading .spinner {
+            border: 3px solid #333;
+            border-top-color: #00d9ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .data-diff-table {
+            margin: 10px 0;
+        }
+
+        .data-diff-row {
+            background: #0f3460;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .data-diff-table-name {
+            font-weight: 600;
+            color: #00d9ff;
+        }
+
+        .data-diff-counts {
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group label {
+            color: #888;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"] {
+            cursor: pointer;
+            accent-color: #00d9ff;
+        }
+
+        .empty-state-compare {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        /* Visualization Styles */
+        .btn-secondary {
+            background: #6c757d;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .results-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 5px;
+            background: #0f3460;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        .view-toggle button {
+            padding: 8px 16px;
+            font-size: 13px;
+            border-radius: 4px;
+            background: transparent;
+            color: #888;
+            border: none;
+        }
+
+        .view-toggle button.active {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .view-toggle button:hover:not(.active) {
+            background: #1a4a7a;
+            color: #eee;
+        }
+
+        /* Chart Controls */
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 15px;
+            background: #0f3460;
+            border-radius: 6px;
+        }
+
+        .chart-controls label {
+            color: #888;
+            font-size: 0.85em;
+            margin-right: 5px;
+        }
+
+        .chart-controls select {
+            padding: 8px 12px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #1a1a2e;
+            color: #eee;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .chart-controls select:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        .chart-type-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .chart-type-btn {
+            padding: 8px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            background: #1a1a2e;
+            color: #888;
+            border: 1px solid #333;
+        }
+
+        .chart-type-btn.active {
+            background: #00d9ff;
+            color: #1a1a2e;
+            border-color: #00d9ff;
+        }
+
+        .chart-type-btn:hover:not(.active) {
+            background: #1a4a7a;
+            color: #eee;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .chart-canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .chart-canvas-wrapper canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* Chart Suggestions */
+        .chart-suggestions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .suggestion-chip {
+            padding: 6px 12px;
+            background: #1a4a7a;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .suggestion-chip:hover {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .suggestion-chip.recommended {
+            border-color: #00ff88;
+            background: #1a4a7a;
+        }
+
+        .suggestion-chip.recommended::before {
+            content: "★ ";
+            color: #00ff88;
+        }
+
+        /* Data type indicators */
+        .type-indicator {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .type-numeric { background: #00ff88; }
+        .type-date { background: #ff9f43; }
+        .type-text { background: #00d9ff; }
+
+        /* SQL Syntax Highlighting for chart hints */
+        .chart-hint {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #1a4a7a;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #00d9ff;
+            margin-left: 8px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .chart-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .chart-type-buttons {
+                flex-wrap: wrap;
+            }
+
+            .results-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* Loading state */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #0f3460;
+            border-top-color: #00d9ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+
+        .btn-secondary {
+            background: #6c757d;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .results-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 5px;
+            background: #0f3460;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        .view-toggle button {
+            padding: 8px 16px;
+            font-size: 13px;
+            border-radius: 4px;
+            background: transparent;
+            color: #888;
+            border: none;
+        }
+
+        .view-toggle button.active {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .view-toggle button:hover:not(.active) {
+            background: #1a4a7a;
+            color: #eee;
+        }
+
+        /* Chart Controls */
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 15px;
+            background: #0f3460;
+            border-radius: 6px;
+        }
+
+        .chart-controls label {
+            color: #888;
+            font-size: 0.85em;
+            margin-right: 5px;
+        }
+
+        .chart-controls select {
+            padding: 8px 12px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #1a1a2e;
+            color: #eee;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .chart-controls select:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        .chart-type-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .chart-type-btn {
+            padding: 8px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            background: #1a1a2e;
+            color: #888;
+            border: 1px solid #333;
+        }
+
+        .chart-type-btn.active {
+            background: #00d9ff;
+            color: #1a1a2e;
+            border-color: #00d9ff;
+        }
+
+        .chart-type-btn:hover:not(.active) {
+            background: #1a4a7a;
+            color: #eee;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .chart-canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .chart-canvas-wrapper canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* Chart Suggestions */
+        .chart-suggestions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .suggestion-chip {
+            padding: 6px 12px;
+            background: #1a4a7a;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .suggestion-chip:hover {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .suggestion-chip.recommended {
+            border-color: #00ff88;
+            background: #1a4a7a;
+        }
+
+        .suggestion-chip.recommended::before {
+            content: "★ ";
+            color: #00ff88;
+        }
+
+        /* Data type indicators */
+        .type-indicator {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .type-numeric { background: #00ff88; }
+        .type-date { background: #ff9f43; }
+        .type-text { background: #00d9ff; }
+
+        /* SQL Syntax Highlighting for chart hints */
+        .chart-hint {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #1a4a7a;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #00d9ff;
+            margin-left: 8px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .chart-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .chart-type-buttons {
+                flex-wrap: wrap;
+            }
+
+            .results-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* Loading state */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #0f3460;
+            border-top-color: #00d9ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -432,7 +1942,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h1>SQLite MCP GUI</h1>
-                    <p class="subtitle">A web interface for SQLite databases using MCP protocol</p>
+                    <p class="subtitle">A web interface for SQLite databases using MCP protocol with Data Visualization with Data Visualization</p>
                 </div>
             </div>
         </header>
@@ -453,13 +1963,51 @@
             <div class="input-group">
                 <input type="text" id="dbPath" placeholder="/path/to/database.db" value="./test.db">
                 <button class="btn-primary" onclick="connect()">Connect</button>
+                <div class="ws-status" id="wsStatus" style="margin-left: auto;">
+                    <div class="ws-indicator disconnected" id="wsIndicator"></div>
+                    <span id="wsStatusText">Disconnected</span>
+                </div>
             </div>
             <p style="margin-top: 10px; color: #888; font-size: 0.9em;">
                 <span class="status disconnected" id="status"></span>
                 <span id="statusText">Disconnected</span>
+                <span class="chart-hint">Use /* chart: bar|line|pie|scatter|histogram */ in SQL comments for auto-charting</span>
+                <span class="chart-hint">Use /* chart: bar|line|pie|scatter|histogram */ in SQL comments for auto-charting</span>
             </p>
         </div>
 
+        <!-- Collaboration Panel -->
+        <div class="collaboration-panel" id="collaborationPanel">
+            <h3>Active Users</h3>
+            <div class="connected-users" id="connectedUsers">
+                <!-- Connected users will be listed here -->
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progressText">Processing query...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+        </div>
+
+        <!-- Notifications Panel -->
+        <div class="notifications-panel" id="notificationsPanel">
+            <!-- Notifications will be listed here -->
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-button active" onclick="switchTab('query')">Query</button>
+            <button class="tab-button" onclick="switchTab('compare')">Compare</button>
+        </div>
+
+        <!-- Query Tab Content -->
+        <div class="tab-content active" id="queryTab">
         <div class="main-content">
             <div class="sidebar">
                 <h3>Tables</h3>
@@ -476,20 +2024,150 @@
 
 Examples:
 SELECT * FROM users LIMIT 10
-SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
+SELECT name, sqlite_master.* FROM sqlite_master
+
+Chart Hints (add in SQL comment):
+/* chart: bar */ - Bar chart
+/* chart: line */ - Line chart
+/* chart: pie */ - Pie chart
+/* chart: scatter */ - Scatter plot
+/* chart: histogram */ - Histogram"></textarea>
                     <div class="query-actions">
                         <button class="btn-success" onclick="executeQuery()">Execute Query</button>
                         <button class="btn-primary" onclick="loadTables()">Refresh Tables</button>
+                        <button class="btn-secondary" onclick="showChartHelp()">Chart Help</button>
                     </div>
                 </div>
 
                 <div class="results-panel" id="resultsPanel" style="display: none;">
                     <div class="results-header">
-                        <h3>Results</h3>
+                        <div class="results-title">
+                            <h3>Results</h3>
+                            <div class="view-toggle" id="viewToggle" style="display: none;">
+                                <button id="tableViewBtn" class="active" onclick="switchView('table')">Table</button>
+                                <button id="chartViewBtn" onclick="switchView('chart')">Chart</button>
+                            </div>
+                        </div>
                         <span class="results-info" id="resultsInfo"></span>
                     </div>
                     <div id="resultsContent"></div>
                 </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Compare Tab Content -->
+        <div class="tab-content" id="compareTab">
+            <div class="compare-panel">
+                <h3 style="color: #00d9ff; margin-bottom: 15px;">Database Comparison</h3>
+                <div class="compare-databases">
+                    <div class="db-input-group">
+                        <label for="compareDb1">Left Database</label>
+                        <input type="text" id="compareDb1" placeholder="/path/to/database1.db" value="./test.db">
+                    </div>
+                    <div class="vs-divider">VS</div>
+                    <div class="db-input-group">
+                        <label for="compareDb2">Right Database</label>
+                        <input type="text" id="compareDb2" placeholder="/path/to/database2.db" value="./test2.db">
+                    </div>
+                </div>
+
+                <div class="compare-actions">
+                    <button class="btn-success" onclick="startComparison()">Compare Databases</button>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="includeData" checked>
+                        <label for="includeData">Include data comparison</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="useChecksums">
+                        <label for="useChecksums">Use checksums for data</label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="comparisonResults" style="display: none;">
+                <div class="diff-view">
+                    <div class="diff-header">
+                        <h3 style="color: #00d9ff;">Schema Differences</h3>
+                        <div class="export-actions">
+                            <button class="btn-secondary" onclick="exportDiffReport()">Export Report</button>
+                        </div>
+                    </div>
+
+                    <div class="diff-summary" id="diffSummary">
+                        <div class="diff-stat added">
+                            <div class="diff-stat-value" id="addedCount">0</div>
+                            <div class="diff-stat-label">Tables Added</div>
+                        </div>
+                        <div class="diff-stat removed">
+                            <div class="diff-stat-value" id="removedCount">0</div>
+                            <div class="diff-stat-label">Tables Removed</div>
+                        </div>
+                        <div class="diff-stat modified">
+                            <div class="diff-stat-value" id="modifiedCount">0</div>
+                            <div class="diff-stat-label">Tables Modified</div>
+                        </div>
+                    </div>
+
+                    <div class="diff-section" id="addedTablesSection" style="display: none;">
+                        <h4>Added Tables</h4>
+                        <div id="addedTablesList"></div>
+                    </div>
+
+                    <div class="diff-section" id="removedTablesSection" style="display: none;">
+                        <h4>Removed Tables</h4>
+                        <div id="removedTablesList"></div>
+                    </div>
+
+                    <div class="diff-section" id="modifiedTablesSection" style="display: none;">
+                        <h4>Modified Tables</h4>
+                        <div id="modifiedTablesList"></div>
+                    </div>
+
+                    <div class="diff-section" id="dataDiffSection" style="display: none;">
+                        <h4>Data Differences</h4>
+                        <div id="dataDiffList"></div>
+                    </div>
+                </div>
+
+                <div class="sync-panel">
+                    <h3 style="color: #00d9ff; margin-bottom: 15px;">Sync Configuration</h3>
+                    <div class="sync-options">
+                        <div class="sync-direction">
+                            <label>Direction:</label>
+                            <select id="syncDirection">
+                                <option value="left-to-right">Left → Right</option>
+                                <option value="right-to-left">Right → Left</option>
+                            </select>
+                        </div>
+                        <button class="btn-warning" onclick="generateSyncScript()">Generate Sync Script</button>
+                    </div>
+
+                    <div id="syncPreview" style="display: none;">
+                        <h4 style="color: #00d9ff; margin: 15px 0;">Sync Script Preview</h4>
+                        <div class="sync-preview">
+                            <pre class="sql-preview" id="syncSqlPreview"></pre>
+                        </div>
+                        <div class="export-actions">
+                            <button class="btn-success" onclick="executeSync()">Execute Sync</button>
+                            <button class="btn-secondary" onclick="exportSyncScript()">Export Sync Script</button>
+                            <button class="btn-secondary" onclick="cancelSync()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="comparisonLoading" style="display: none;">
+                <div class="comparison-loading">
+                    <div class="spinner"></div>
+                    <p>Comparing databases...</p>
+                </div>
+            </div>
+
+            <div id="comparisonEmpty" class="empty-state-compare">
+                <div class="empty-state-icon">⚖️</div>
+                <h3>Compare Two Databases</h3>
+                <p>Enter the paths to two SQLite databases above and click "Compare Databases" to see the differences.</p>
             </div>
         </div>
     </div>
@@ -499,6 +2177,397 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
         let connected = false;
         let authToken = null;
         let currentUser = null;
+        let currentResults = null;
+        let currentChart = null;
+        let currentView = 'table';
+        let chartConfig = {
+            type: 'bar',
+            xColumn: null,
+            yColumns: [],
+            aggregate: 'sum',
+            groupBy: null
+        };
+
+        // Color themes matching UI
+        const chartColors = {
+            backgrounds: [
+                'rgba(0, 217, 255, 0.7)',
+                'rgba(0, 255, 136, 0.7)',
+                'rgba(255, 159, 67, 0.7)',
+                'rgba(255, 107, 107, 0.7)',
+                'rgba(147, 51, 234, 0.7)',
+                'rgba(236, 72, 153, 0.7)',
+                'rgba(59, 130, 246, 0.7)',
+                'rgba(16, 185, 129, 0.7)'
+            ],
+            borders: [
+                'rgba(0, 217, 255, 1)',
+                'rgba(0, 255, 136, 1)',
+                'rgba(255, 159, 67, 1)',
+                'rgba(255, 107, 107, 1)',
+                'rgba(147, 51, 234, 1)',
+                'rgba(236, 72, 153, 1)',
+                'rgba(59, 130, 246, 1)',
+                'rgba(16, 185, 129, 1)'
+            ]
+        };
+        let currentResults = null;
+        let currentChart = null;
+        let currentView = 'table';
+        let chartConfig = {
+            type: 'bar',
+            xColumn: null,
+            yColumns: [],
+            aggregate: 'sum',
+            groupBy: null
+        };
+
+        // WebSocket client
+        let wsClient = null;
+        let connectedUsers = new Map();
+        let activeNotifications = new Map();
+
+        // WebSocket event types (matching server)
+        const WSMessageType = {
+            QUERY_STARTED: 'query:started',
+            QUERY_PROGRESS: 'query:progress',
+            QUERY_COMPLETE: 'query:complete',
+            QUERY_ERROR: 'query:error',
+            QUERY_CANCELLED: 'query:cancelled',
+            TABLE_CREATED: 'table:created',
+            TABLE_MODIFIED: 'table:modified',
+            TABLE_DROPPED: 'table:dropped',
+            USER_JOINED: 'user:joined',
+            USER_LEFT: 'user:left',
+            USER_CURSOR: 'user:cursor',
+            CONNECTION_ACK: 'connection:ack',
+            HEARTBEAT: 'heartbeat',
+            ERROR: 'error',
+        };
+
+        // Initialize WebSocket client
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+            wsClient = {
+                ws: null,
+                reconnectTimer: null,
+                reconnectAttempts: 0,
+                maxReconnectAttempts: 10,
+                reconnectInterval: 3000,
+                handlers: {},
+                connect: function() {
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        return;
+                    }
+
+                    this.ws = new WebSocket(wsUrl);
+
+                    this.ws.onopen = () => {
+                        console.log('[WS] Connected');
+                        this.reconnectAttempts = 0;
+                        updateWSStatus('connected');
+                        this.scheduleHeartbeat();
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            this.handleMessage(message);
+                        } catch (error) {
+                            console.error('[WS] Error parsing message:', error);
+                        }
+                    };
+
+                    this.ws.onclose = (event) => {
+                        console.log('[WS] Disconnected:', event.code, event.reason);
+                        updateWSStatus('disconnected');
+                        this.scheduleReconnect();
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('[WS] Error:', error);
+                        updateWSStatus('disconnected');
+                    };
+                },
+                disconnect: function() {
+                    this.reconnectAttempts = this.maxReconnectAttempts;
+                    if (this.reconnectTimer) {
+                        clearTimeout(this.reconnectTimer);
+                    }
+                    if (this.ws) {
+                        this.ws.close();
+                    }
+                },
+                scheduleReconnect: function() {
+                    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+                        console.log('[WS] Max reconnection attempts reached');
+                        return;
+                    }
+
+                    this.reconnectAttempts++;
+                    const delay = this.reconnectInterval * Math.min(this.reconnectAttempts, 5);
+
+                    console.log(`[WS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+
+                    this.reconnectTimer = setTimeout(() => {
+                        this.connect();
+                    }, delay);
+                },
+                scheduleHeartbeat: function() {
+                    setInterval(() => {
+                        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                            this.send({
+                                type: WSMessageType.HEARTBEAT,
+                                channel: 'notifications',
+                                data: { timestamp: Date.now() }
+                            });
+                        }
+                    }, 30000);
+                },
+                send: function(message) {
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        this.ws.send(JSON.stringify({
+                            ...message,
+                            id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            timestamp: Date.now()
+                        }));
+                    }
+                },
+                on: function(eventType, handler) {
+                    if (!this.handlers[eventType]) {
+                        this.handlers[eventType] = [];
+                    }
+                    this.handlers[eventType].push(handler);
+                },
+                handleMessage: function(message) {
+                    const { type, data } = message;
+
+                    // Trigger registered handlers
+                    if (this.handlers[type]) {
+                        this.handlers[type].forEach(handler => handler(data));
+                    }
+
+                    // Handle built-in events
+                    switch (type) {
+                        case WSMessageType.CONNECTION_ACK:
+                            console.log('[WS] Connection acknowledged:', data.clientId);
+                            break;
+
+                        case WSMessageType.QUERY_STARTED:
+                            handleQueryStarted(data);
+                            break;
+
+                        case WSMessageType.QUERY_PROGRESS:
+                            handleQueryProgress(data);
+                            break;
+
+                        case WSMessageType.QUERY_COMPLETE:
+                            handleQueryComplete(data);
+                            break;
+
+                        case WSMessageType.QUERY_ERROR:
+                            handleQueryError(data);
+                            break;
+
+                        case WSMessageType.TABLE_CREATED:
+                            handleTableCreated(data);
+                            break;
+
+                        case WSMessageType.TABLE_MODIFIED:
+                            handleTableModified(data);
+                            break;
+
+                        case WSMessageType.TABLE_DROPPED:
+                            handleTableDropped(data);
+                            break;
+
+                        case WSMessageType.USER_JOINED:
+                            handleUserJoined(data);
+                            break;
+
+                        case WSMessageType.USER_LEFT:
+                            handleUserLeft(data);
+                            break;
+                    }
+                }
+            };
+
+            // Register event handlers
+            wsClient.on(WSMessageType.QUERY_PROGRESS, (data) => {
+                showProgress(data.progress, `${data.rowsProcessed || 0} rows processed`);
+            });
+
+            wsClient.connect();
+        }
+
+        // WebSocket event handlers
+        function handleQueryStarted(data) {
+            showNotification('info', 'Query Started', `User ${data.username || 'Anonymous'} started a query`);
+        }
+
+        function handleQueryProgress(data) {
+            updateProgress(data.progress, `${data.rowsProcessed || 0} rows processed`);
+        }
+
+        function handleQueryComplete(data) {
+            hideProgress();
+            if (data.queryId) {
+                showNotification('success', 'Query Complete', `Returned ${data.rowCount} rows in ${data.executionTime}ms`);
+            }
+        }
+
+        function handleQueryError(data) {
+            hideProgress();
+            showNotification('error', 'Query Error', data.error);
+        }
+
+        function handleTableCreated(data) {
+            showNotification('success', 'Table Created', `Table "${data.tableName}" was created`);
+            if (connected && currentDbPath === data.dbPath) {
+                loadTables();
+            }
+        }
+
+        function handleTableModified(data) {
+            showNotification('info', 'Table Modified', `Table "${data.tableName}" was modified`);
+        }
+
+        function handleTableDropped(data) {
+            showNotification('warning', 'Table Dropped', `Table "${data.tableName}" was dropped`);
+            if (connected && currentDbPath === data.dbPath) {
+                loadTables();
+            }
+        }
+
+        function handleUserJoined(data) {
+            connectedUsers.set(data.userId, data);
+            updateCollaborationPanel();
+            showNotification('info', 'User Joined', `${data.username} joined the session`);
+        }
+
+        function handleUserLeft(data) {
+            connectedUsers.delete(data.userId);
+            updateCollaborationPanel();
+            showNotification('info', 'User Left', `${data.username} left the session`);
+        }
+
+        // UI update functions
+        function updateWSStatus(status) {
+            const indicator = document.getElementById('wsIndicator');
+            const statusText = document.getElementById('wsStatusText');
+
+            if (status === 'connected') {
+                indicator.className = 'ws-indicator connected';
+                statusText.textContent = 'Connected';
+            } else if (status === 'connecting') {
+                indicator.className = 'ws-indicator connecting';
+                statusText.textContent = 'Connecting...';
+            } else {
+                indicator.className = 'ws-indicator disconnected';
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        function updateCollaborationPanel() {
+            const panel = document.getElementById('collaborationPanel');
+            const container = document.getElementById('connectedUsers');
+
+            if (connectedUsers.size === 0) {
+                panel.classList.remove('active');
+                return;
+            }
+
+            panel.classList.add('active');
+            container.innerHTML = Array.from(connectedUsers.values()).map(user => `
+                <div class="user-chip">
+                    <div class="user-chip-avatar">${user.username.charAt(0).toUpperCase()}</div>
+                    <span>${user.username}</span>
+                </div>
+            `).join('');
+        }
+
+        function showProgress(percent, message) {
+            const container = document.getElementById('progressContainer');
+            const fill = document.getElementById('progressFill');
+            const text = document.getElementById('progressText');
+            const percentText = document.getElementById('progressPercent');
+
+            container.classList.add('active');
+            fill.style.width = `${percent}%`;
+            text.textContent = message || 'Processing...';
+            percentText.textContent = `${Math.round(percent)}%`;
+        }
+
+        function updateProgress(percent, message) {
+            showProgress(percent, message);
+        }
+
+        function hideProgress() {
+            const container = document.getElementById('progressContainer');
+            container.classList.remove('active');
+        }
+
+        function showNotification(type, title, message) {
+            const panel = document.getElementById('notificationsPanel');
+            const notificationId = `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.id = notificationId;
+            notification.innerHTML = `
+                <div class="notification-header">
+                    <span class="notification-title">${title}</span>
+                    <button class="notification-close" onclick="dismissNotification('${notificationId}')">&times;</button>
+                </div>
+                <div class="notification-body">${message}</div>
+                <div class="notification-time">${new Date().toLocaleTimeString()}</div>
+            `;
+
+            panel.appendChild(notification);
+            activeNotifications.set(notificationId, notification);
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                dismissNotification(notificationId);
+            }, 5000);
+        }
+
+        function dismissNotification(notificationId) {
+            const notification = activeNotifications.get(notificationId);
+            if (notification) {
+                notification.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => {
+                    notification.remove();
+                    activeNotifications.delete(notificationId);
+                }, 300);
+            }
+        }
+
+        // Color themes matching UI
+        const chartColors = {
+            backgrounds: [
+                'rgba(0, 217, 255, 0.7)',
+                'rgba(0, 255, 136, 0.7)',
+                'rgba(255, 159, 67, 0.7)',
+                'rgba(255, 107, 107, 0.7)',
+                'rgba(147, 51, 234, 0.7)',
+                'rgba(236, 72, 153, 0.7)',
+                'rgba(59, 130, 246, 0.7)',
+                'rgba(16, 185, 129, 0.7)'
+            ],
+            borders: [
+                'rgba(0, 217, 255, 1)',
+                'rgba(0, 255, 136, 1)',
+                'rgba(255, 159, 67, 1)',
+                'rgba(255, 107, 107, 1)',
+                'rgba(147, 51, 234, 1)',
+                'rgba(236, 72, 153, 1)',
+                'rgba(59, 130, 246, 1)',
+                'rgba(16, 185, 129, 1)'
+            ]
+        };
 
         // Check authentication status on load
         async function checkAuth() {
@@ -546,6 +2615,9 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
                 // Hide user bar if auth is disabled
                 document.getElementById('userBar').style.display = 'none';
             }
+
+            // Initialize WebSocket connection
+            initWebSocket();
         }
 
         function formatRole(role) {
@@ -727,30 +2799,25 @@ SELECT name, sqlite_master.* FROM sqlite_master"></textarea>
             const resultsPanel = document.getElementById('resultsPanel');
             const resultsContent = document.getElementById('resultsContent');
             const resultsInfo = document.getElementById('resultsInfo');
+            const viewToggle = document.getElementById('viewToggle');
 
             resultsPanel.style.display = 'block';
             resultsInfo.textContent = `${rowCount} row(s) returned`;
 
             if (!Array.isArray(rows) || rows.length === 0) {
                 resultsContent.innerHTML = '<div class="empty-state">No results</div>';
+                viewToggle.style.display = 'none';
                 return;
             }
 
-            const columns = Object.keys(rows[0]);
-            const table = document.createElement('table');
-            table.innerHTML = `
-                <thead>
-                    <tr>${columns.map(col => `<th>${col}</th>`).join('')}</tr>
-                </thead>
-                <tbody>
-                    ${rows.map(row => `
-                        <tr>${columns.map(col => `<td>${row[col] === null ? 'NULL' : row[col]}</td>`).join('')}</tr>
-                    `).join('')}
-                </tbody>
-            `;
+            // Check if data can be charted
+            if (canChartData(rows)) {
+                viewToggle.style.display = 'flex';
+            } else {
+                viewToggle.style.display = 'none';
+            }
 
-            resultsContent.innerHTML = '';
-            resultsContent.appendChild(table);
+            renderTable(rows);
         }
 
         function showError(message) {
