@@ -1,0 +1,89 @@
+# =============================================================================
+# Kubernetes Service Manifest for sqlite-mcp-gui
+# =============================================================================
+
+---
+# Service for external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqlite-mcp-gui
+  namespace: default
+  labels:
+    app: sqlite-mcp-gui
+  annotations:
+    # If using a cloud load balancer, you can add annotations here
+    # service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+spec:
+  type: ClusterIP
+  selector:
+    app: sqlite-mcp-gui
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+
+---
+# Ingress for external access (requires an Ingress controller)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sqlite-mcp-gui-ingress
+  namespace: default
+  labels:
+    app: sqlite-mcp-gui
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # cert-manager annotations for TLS (if available)
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: sqlite-gui.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sqlite-mcp-gui
+                port:
+                  number: 80
+  # TLS configuration (uncomment when using cert-manager)
+  # tls:
+  #   - hosts:
+  #       - sqlite-gui.example.com
+  #     secretName: sqlite-gui-tls
+
+---
+# ConfigMap for application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sqlite-mcp-gui-config
+  namespace: default
+  labels:
+    app: sqlite-mcp-gui
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+
+---
+# ServiceMonitor for Prometheus (if using Prometheus Operator)
+# Uncomment this section if you have Prometheus Operator installed
+# apiVersion: monitoring.coreos.com/v1
+# kind: ServiceMonitor
+# metadata:
+#   name: sqlite-mcp-gui
+#   namespace: default
+#   labels:
+#     app: sqlite-mcp-gui
+# spec:
+#   selector:
+#     matchLabels:
+#       app: sqlite-mcp-gui
+#   endpoints:
+#     - port: http
+#       path: /metrics
+#       interval: 30s
