@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SQLite MCP GUI</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -99,6 +97,20 @@
             background: #00dd77;
         }
 
+        .btn-secondary {
+            background: #535c68;
+            color: #eee;
+        }
+
+        .btn-secondary:hover {
+            background: #636e72;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
         .main-content {
             display: grid;
             grid-template-columns: 250px 1fr;
@@ -170,6 +182,7 @@
             display: flex;
             gap: 10px;
             margin-top: 15px;
+            flex-wrap: wrap;
         }
 
         .results-panel {
@@ -184,11 +197,40 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .results-info {
             color: #888;
             font-size: 0.9em;
+        }
+
+        .view-toggles {
+            display: flex;
+            gap: 10px;
+        }
+
+        .view-toggle {
+            padding: 6px 12px;
+            background: #0f3460;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #888;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .view-toggle:hover {
+            background: #1a4a7a;
+            color: #eee;
+        }
+
+        .view-toggle.active {
+            background: #00d9ff;
+            border-color: #00d9ff;
+            color: #1a1a2e;
         }
 
         table {
@@ -253,211 +295,195 @@
             background: #ff6b6b;
         }
 
-        /* WebSocket Status */
-        .ws-status {
+        /* Chart Controls */
+        .chart-controls {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .chart-controls.visible {
+            display: block;
+        }
+
+        .chart-controls-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .chart-controls-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .chart-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .chart-control-group label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select.chart-select {
+            padding: 8px 12px;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #eee;
+            font-size: 13px;
+            min-width: 150px;
+            cursor: pointer;
+        }
+
+        select.chart-select:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        .chart-suggestion {
+            padding: 8px 12px;
+            background: #1a3a1a;
+            border: 1px solid #00ff88;
+            border-radius: 4px;
+            color: #00ff88;
+            font-size: 12px;
+            display: none;
+        }
+
+        .chart-suggestion.visible {
+            display: inline-block;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 20px;
+            display: none;
+        }
+
+        .chart-container.visible {
+            display: block;
+        }
+
+        .chart-canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        canvas.chart-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
+
+        .legend-item {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 12px;
-            background: #0f3460;
-            border-radius: 4px;
-            font-size: 0.85em;
+            font-size: 13px;
         }
 
-        .ws-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
         }
 
-        .ws-indicator.connected {
-            background: #00ff88;
-        }
-
-        .ws-indicator.connecting {
-            background: #ffa500;
-        }
-
-        .ws-indicator.disconnected {
-            background: #ff6b6b;
-            animation: none;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* Notifications Panel */
-        .notifications-panel {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 350px;
-            max-height: 400px;
-            overflow-y: auto;
+        /* Chart Tooltip */
+        .chart-tooltip {
+            position: absolute;
+            background: rgba(22, 33, 62, 0.95);
+            border: 1px solid #00d9ff;
+            border-radius: 6px;
+            padding: 10px 15px;
+            pointer-events: none;
             z-index: 1000;
+            display: none;
+            font-size: 13px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            max-width: 300px;
         }
 
-        .notification {
-            background: #16213e;
-            border-left: 4px solid #00d9ff;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            animation: slideIn 0.3s ease-out;
+        .chart-tooltip.visible {
+            display: block;
         }
 
-        .notification.info {
-            border-left-color: #00d9ff;
+        .chart-tooltip-title {
+            color: #00d9ff;
+            font-weight: 600;
+            margin-bottom: 5px;
         }
 
-        .notification.success {
-            border-left-color: #00ff88;
-        }
-
-        .notification.warning {
-            border-left-color: #ffa500;
-        }
-
-        .notification.error {
-            border-left-color: #ff6b6b;
-        }
-
-        .notification-header {
+        .chart-tooltip-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
+            gap: 20px;
+            margin: 3px 0;
         }
 
-        .notification-title {
+        .chart-tooltip-label {
+            color: #888;
+        }
+
+        .chart-tooltip-value {
+            color: #eee;
             font-weight: 600;
-            font-size: 0.9em;
         }
 
-        .notification-close {
-            background: none;
-            border: none;
+        /* Chart Type Buttons */
+        .chart-type-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .chart-type-btn {
+            padding: 8px 12px;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 4px;
             color: #888;
             cursor: pointer;
-            padding: 0;
-            font-size: 1.2em;
-            line-height: 1;
+            font-size: 12px;
+            transition: all 0.2s;
         }
 
-        .notification-close:hover {
+        .chart-type-btn:hover {
+            background: #1a4a7a;
             color: #eee;
         }
 
-        .notification-body {
-            font-size: 0.85em;
-            color: #ccc;
-        }
-
-        .notification-time {
-            font-size: 0.75em;
-            color: #666;
-            margin-top: 5px;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        /* Progress Bar */
-        .progress-container {
-            display: none;
-            background: #0f3460;
-            border-radius: 4px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .progress-container.active {
-            display: block;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #1a1a2e;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #00d9ff, #00ff88);
-            transition: width 0.3s ease;
-            width: 0%;
-        }
-
-        .progress-text {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85em;
-            color: #888;
-        }
-
-        /* Collaboration Panel */
-        .collaboration-panel {
-            background: #16213e;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .collaboration-panel.active {
-            display: block;
-        }
-
-        .collaboration-panel h3 {
-            color: #00d9ff;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .connected-users {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .user-chip {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #0f3460;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 0.85em;
-        }
-
-        .user-chip-avatar {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
+        .chart-type-btn.active {
             background: #00d9ff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            border-color: #00d9ff;
             color: #1a1a2e;
-            font-weight: bold;
-            font-size: 12px;
+        }
+
+        .chart-type-btn.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
         }
 
         /* Login Modal Styles */
@@ -615,1080 +641,20 @@
             border-color: #00d9ff;
         }
 
-        /* Query Builder Styles */
-        .query-builder-container {
-            display: none;
-        }
-
-        .query-builder-container.active {
-            display: block;
-        }
-
-        .query-builder-container {
-            display: none;
-        }
-
-        .query-builder-container.active {
-            display: block;
-        }
-
-        .qb-tabs {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #333;
-        }
-
-        .qb-tab {
-            padding: 12px 24px;
-            background: transparent;
-            color: #888;
-            border: none;
-            border-bottom: 2px solid transparent;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-            margin-bottom: -2px;
-        }
-
-        .qb-tab:hover {
-            color: #00d9ff;
-        }
-
-        .qb-tab.active {
-            color: #00d9ff;
-            border-bottom-color: #00d9ff;
-        }
-
-        .qb-section {
-            background: #0f3460;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .qb-section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .qb-section-title {
-            color: #00d9ff;
-            font-weight: 600;
-            font-size: 1.1em;
-        }
-
-        .qb-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .qb-table-card {
-            background: #16213e;
-            border: 2px solid #333;
-            border-radius: 8px;
-            padding: 15px;
-            cursor: move;
-            transition: all 0.2s;
-        }
-
-        .qb-table-card:hover {
-            border-color: #00d9ff;
-        }
-
-        .qb-table-card.selected {
-            border-color: #00d9ff;
-            background: #1a4a7a;
-        }
-
-        .qb-table-name {
-            font-weight: 600;
-            color: #00d9ff;
-            margin-bottom: 10px;
-        }
-
-        .qb-column-list {
-            list-style: none;
-            margin-top: 10px;
-        }
-
-        .qb-column-item {
-            display: flex;
-            align-items: center;
-            padding: 6px 10px;
-            margin: 4px 0;
-            background: #0f3460;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .qb-column-item:hover {
-            background: #1a4a7a;
-        }
-
-        .qb-column-item.selected {
-            background: #00d9ff;
-            color: #1a1a2e;
-        }
-
-        .qb-column-checkbox {
-            margin-right: 8px;
-            cursor: pointer;
-        }
-
-        .qb-column-type {
-            margin-left: auto;
-            font-size: 0.8em;
-            color: #888;
-        }
-
-        .qb-join-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 10px;
-            padding: 15px;
-            background: #16213e;
-            border-radius: 8px;
-        }
-
-        .qb-join-type, .qb-join-table, .qb-join-column {
-            padding: 8px 12px;
-            background: #0f3460;
-            border: 1px solid #333;
-            border-radius: 4px;
-            color: #eee;
-            cursor: pointer;
-        }
-
-        .qb-condition-group {
-            background: #16213e;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-
-        .qb-condition-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .qb-condition-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 10px;
-            padding: 10px;
-            background: #0f3460;
-            border-radius: 4px;
-        }
-
-        .qb-operator-select {
-            padding: 8px 12px;
-            background: #0f3460;
-            border: 1px solid #333;
-            border-radius: 4px;
-            color: #eee;
-        }
-
-        .qb-value-input {
-            flex: 1;
-            padding: 8px 12px;
-            background: #16213e;
-            border: 1px solid #333;
-            border-radius: 4px;
-            color: #eee;
-        }
-
-        .qb-value-input:focus {
-            outline: none;
-            border-color: #00d9ff;
-        }
-
-        .qb-btn-add {
-            padding: 8px 16px;
-            background: #00ff88;
-            color: #1a1a2e;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .qb-btn-add:hover {
-            background: #00dd77;
-        }
-
-        .qb-btn-remove {
-            padding: 6px 12px;
-            background: #ff6b6b;
-            color: #1a1a2e;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        .qb-btn-remove:hover {
-            background: #dd5555;
-        }
-
-        .qb-btn-secondary {
-            padding: 8px 16px;
-            background: transparent;
-            color: #00d9ff;
-            border: 1px solid #00d9ff;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .qb-btn-secondary:hover {
-            background: #00d9ff;
-            color: #1a1a2e;
-        }
-
-        .qb-sql-preview {
-            background: #0a0a0a;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 20px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 14px;
-            color: #00ff88;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .qb-sql-keyword {
-            color: #ff79c6;
-            font-weight: 600;
-        }
-
-        .qb-sql-table {
-            color: #8be9fd;
-        }
-
-        .qb-sql-column {
-            color: #50fa7b;
-        }
-
-        .qb-relationship-diagram {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            padding: 20px;
-            background: #0a0a0a;
-            border-radius: 8px;
-            min-height: 300px;
-        }
-
-        .qb-table-node {
-            background: #16213e;
-            border: 2px solid #00d9ff;
-            border-radius: 8px;
-            padding: 15px;
-            min-width: 200px;
-            position: relative;
-        }
-
-        .qb-table-node-header {
-            font-weight: 600;
-            color: #00d9ff;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #333;
-        }
-
-        .qb-table-node-columns {
-            list-style: none;
-        }
-
-        .qb-table-node-column {
-            padding: 4px 0;
-            color: #888;
-            font-size: 0.9em;
-        }
-
-        .qb-table-node-column.pk {
-            color: #ffb86c;
-        }
-
-        .qb-table-node-column.fk {
-            color: #bd93f9;
-        }
-
-        .qb-relationship-line {
-            position: absolute;
-            height: 2px;
-            background: #00d9ff;
-            transform-origin: left center;
-        }
-
-        .qb-templates-panel {
-            background: #16213e;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-        }
-
-        .qb-template-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            margin: 5px 0;
-            background: #0f3460;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .qb-template-item:hover {
-            background: #1a4a7a;
-        }
-
-        .qb-template-name {
-            font-weight: 600;
-        }
-
-        .qb-template-date {
-            font-size: 0.85em;
-            color: #888;
-        }
-
-        .qb-advanced-section {
-            background: #1a1a2e;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .qb-advanced-header {
-            color: #00d9ff;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .qb-subquery-builder {
-            background: #0f3460;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-
-        .qb-union-builder {
-            background: #0f3460;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-
-        .qb-cte-builder {
-            background: #0f3460;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-
-        .qb-aggregate-builder {
-            background: #0f3460;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-
-        .qb-case-builder {
-            background: #0f3460;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-
-        .qb-case-when {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 10px;
-            padding: 10px;
-            background: #16213e;
-            border-radius: 4px;
-        }
-
-        .qb-validation-message {
-            padding: 10px 15px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-        }
-
-        .qb-validation-message.error {
-            background: #3a1a1a;
-            color: #ff6b6b;
-            border-left: 4px solid #ff6b6b;
-        }
-
-        .qb-validation-message.success {
-            background: #1a3a1a;
-            color: #00ff88;
-            border-left: 4px solid #00ff88;
-        }
-
-        .qb-validation-message.warning {
-            background: #3a3a1a;
-            color: #ffdd55;
-            border-left: 4px solid #ffdd55;
-        }
-
-        .qb-explain-plan {
-            background: #0a0a0a;
-            border-radius: 8px;
-            padding: 15px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 13px;
-            color: #888;
-            margin-top: 15px;
-        }
-
-        .qb-explain-plan-row {
-            padding: 5px 0;
-            border-bottom: 1px solid #222;
-        }
-
-        .qb-explain-plan-detail {
-            padding-left: 20px;
-            color: #666;
-        }
-
-        select {
-            padding: 8px 12px;
-            background: #0f3460;
-            border: 1px solid #333;
-            border-radius: 4px;
-            color: #eee;
-            cursor: pointer;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: #00d9ff;
-        }
-
-        .qb-drag-handle {
-            cursor: grab;
-            display: inline-block;
-            margin-right: 8px;
-            color: #888;
-        }
-
-        .qb-drag-handle:active {
-            cursor: grabbing;
-        }
-
-        .qb-divider {
-            height: 1px;
-            background: #333;
-            margin: 15px 0;
-        }
-
-        /* Database Comparison Styles */
-        .tab-nav {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #333;
-        }
-
-        .tab-button {
-            padding: 12px 24px;
-            background: transparent;
-            color: #888;
-            border: none;
-            border-bottom: 2px solid transparent;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-            margin-bottom: -2px;
-        }
-
-        .tab-button:hover {
-            color: #00d9ff;
-        }
-
-        .tab-button.active {
-            color: #00d9ff;
-            border-bottom-color: #00d9ff;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .compare-panel {
-            background: #16213e;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .compare-databases {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .db-input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .db-input-group label {
-            color: #888;
-            font-size: 0.9em;
-            font-weight: 600;
-        }
-
-        .vs-divider {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #00d9ff;
-            text-align: center;
-        }
-
-        .compare-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .btn-secondary {
-            background: #333;
-            color: #eee;
-        }
-
-        .btn-secondary:hover {
-            background: #444;
-        }
-
-        .btn-warning {
-            background: #ff9500;
-            color: #1a1a2e;
-        }
-
-        .btn-warning:hover {
-            background: #ff8000;
-        }
-
-        .diff-view {
-            background: #16213e;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .diff-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .diff-summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .diff-stat {
-            background: #0f3460;
-            padding: 15px;
-            border-radius: 6px;
-            text-align: center;
-        }
-
-        .diff-stat-value {
-            font-size: 2em;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .diff-stat-label {
-            color: #888;
-            font-size: 0.85em;
-        }
-
-        .diff-stat.added .diff-stat-value {
-            color: #00ff88;
-        }
-
-        .diff-stat.removed .diff-stat-value {
-            color: #ff6b6b;
-        }
-
-        .diff-stat.modified .diff-stat-value {
-            color: #ff9500;
-        }
-
-        .diff-section {
-            margin-bottom: 25px;
-        }
-
-        .diff-section h4 {
-            color: #00d9ff;
-            margin-bottom: 10px;
-            font-size: 1.1em;
-            border-bottom: 1px solid #333;
-            padding-bottom: 8px;
-        }
-
-        .diff-item {
-            background: #0f3460;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 4px;
-            border-left: 3px solid #888;
-        }
-
-        .diff-item.added {
-            border-left-color: #00ff88;
-        }
-
-        .diff-item.removed {
-            border-left-color: #ff6b6b;
-        }
-
-        .diff-item.modified {
-            border-left-color: #ff9500;
-        }
-
-        .diff-item-title {
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .diff-item-badge {
-            background: #333;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 0.75em;
-            color: #888;
-        }
-
-        .diff-item.added .diff-item-badge {
-            background: #00ff88;
-            color: #1a1a2e;
-        }
-
-        .diff-item.removed .diff-item-badge {
-            background: #ff6b6b;
-            color: #1a1a2e;
-        }
-
-        .diff-item.modified .diff-item-badge {
-            background: #ff9500;
-            color: #1a1a2e;
-        }
-
-        .diff-details {
-            font-size: 0.9em;
-            color: #aaa;
-            margin-top: 8px;
-        }
-
-        .diff-detail-item {
-            padding: 4px 0;
-            padding-left: 15px;
-        }
-
-        .diff-detail-item::before {
-            content: "•";
-            margin-right: 8px;
-            color: #666;
-        }
-
-        .sync-panel {
-            background: #16213e;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .sync-options {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .sync-direction {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .sync-direction label {
-            color: #888;
-            font-size: 0.9em;
-        }
-
-        .sync-preview {
-            background: #0f3460;
-            border-radius: 4px;
-            padding: 15px;
-            margin: 15px 0;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .sql-preview {
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.9em;
-            white-space: pre-wrap;
-            color: #00ff88;
-            line-height: 1.5;
-        }
-
-        .export-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: #333;
-            border-radius: 2px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            background: #00d9ff;
-            transition: width 0.3s;
-        }
-
-        .comparison-loading {
-            text-align: center;
-            padding: 40px;
-            color: #888;
-        }
-
-        .comparison-loading .spinner {
-            border: 3px solid #333;
-            border-top-color: #00d9ff;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .data-diff-table {
-            margin: 10px 0;
-        }
-
-        .data-diff-row {
-            background: #0f3460;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .data-diff-table-name {
-            font-weight: 600;
-            color: #00d9ff;
-        }
-
-        .data-diff-counts {
-            font-size: 0.9em;
-            color: #888;
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .checkbox-group label {
-            color: #888;
-            font-size: 0.9em;
-            cursor: pointer;
-        }
-
-        input[type="checkbox"] {
-            cursor: pointer;
-            accent-color: #00d9ff;
-        }
-
-        .empty-state-compare {
-            text-align: center;
-            padding: 60px 20px;
-            color: #888;
-        }
-
-        .empty-state-icon {
-            font-size: 3em;
-            margin-bottom: 15px;
-            opacity: 0.5;
-        }
-
-        /* Visualization Styles */
-        .btn-secondary {
-            background: #6c757d;
-            color: #fff;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .results-title {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .view-toggle {
-            display: flex;
-            gap: 5px;
-            background: #0f3460;
-            padding: 4px;
-            border-radius: 6px;
-        }
-
-        .view-toggle button {
-            padding: 8px 16px;
-            font-size: 13px;
-            border-radius: 4px;
-            background: transparent;
-            color: #888;
-            border: none;
-        }
-
-        .view-toggle button.active {
-            background: #00d9ff;
-            color: #1a1a2e;
-        }
-
-        .view-toggle button:hover:not(.active) {
-            background: #1a4a7a;
-            color: #eee;
-        }
-
-        /* Chart Controls */
-        .chart-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-            padding: 15px;
-            background: #0f3460;
-            border-radius: 6px;
-        }
-
-        .chart-controls label {
-            color: #888;
-            font-size: 0.85em;
-            margin-right: 5px;
-        }
-
-        .chart-controls select {
-            padding: 8px 12px;
-            border: 1px solid #333;
-            border-radius: 4px;
-            background: #1a1a2e;
-            color: #eee;
-            font-size: 13px;
-            cursor: pointer;
-        }
-
-        .chart-controls select:focus {
-            outline: none;
-            border-color: #00d9ff;
-        }
-
-        .chart-type-buttons {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-
-        .chart-type-btn {
-            padding: 8px 12px;
-            font-size: 12px;
-            border-radius: 4px;
-            background: #1a1a2e;
-            color: #888;
-            border: 1px solid #333;
-        }
-
-        .chart-type-btn.active {
-            background: #00d9ff;
-            color: #1a1a2e;
-            border-color: #00d9ff;
-        }
-
-        .chart-type-btn:hover:not(.active) {
-            background: #1a4a7a;
-            color: #eee;
-        }
-
-        /* Chart Container */
-        .chart-container {
-            position: relative;
-            width: 100%;
-            height: 500px;
-            background: #0f3460;
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        .chart-canvas-wrapper {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-
-        .chart-canvas-wrapper canvas {
-            max-width: 100%;
-            max-height: 100%;
-        }
-
-        /* Chart Suggestions */
-        .chart-suggestions {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
-        .suggestion-chip {
-            padding: 6px 12px;
-            background: #1a4a7a;
-            border-radius: 20px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid transparent;
-        }
-
-        .suggestion-chip:hover {
-            background: #00d9ff;
-            color: #1a1a2e;
-        }
-
-        .suggestion-chip.recommended {
-            border-color: #00ff88;
-            background: #1a4a7a;
-        }
-
-        .suggestion-chip.recommended::before {
-            content: "★ ";
-            color: #00ff88;
-        }
-
-        /* Data type indicators */
-        .type-indicator {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            margin-right: 6px;
-        }
-
-        .type-numeric { background: #00ff88; }
-        .type-date { background: #ff9f43; }
-        .type-text { background: #00d9ff; }
-
-        /* SQL Syntax Highlighting for chart hints */
-        .chart-hint {
-            display: inline-block;
-            padding: 2px 6px;
-            background: #1a4a7a;
-            border-radius: 3px;
-            font-size: 11px;
-            color: #00d9ff;
-            margin-left: 8px;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 1024px) {
+        /* Responsive */
+        @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
             }
 
-            .sidebar {
-                max-height: 300px;
-                overflow-y: auto;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .chart-controls {
+            .chart-controls-row {
                 flex-direction: column;
                 align-items: stretch;
             }
 
-            .chart-type-buttons {
-                flex-wrap: wrap;
+            .chart-canvas-wrapper {
+                height: 350px;
             }
-
-            .results-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-
-        /* Loading state */
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #0f3460;
-            border-top-color: #00d9ff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -1717,7 +683,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h1>SQLite MCP GUI</h1>
-                    <p class="subtitle">A web interface for SQLite databases using MCP protocol with Data Visualization</p>
+                    <p class="subtitle">A web interface for SQLite databases using MCP protocol</p>
                 </div>
             </div>
         </header>
@@ -1738,50 +704,13 @@
             <div class="input-group">
                 <input type="text" id="dbPath" placeholder="/path/to/database.db" value="./test.db">
                 <button class="btn-primary" onclick="connect()">Connect</button>
-                <div class="ws-status" id="wsStatus" style="margin-left: auto;">
-                    <div class="ws-indicator disconnected" id="wsIndicator"></div>
-                    <span id="wsStatusText">Disconnected</span>
-                </div>
             </div>
             <p style="margin-top: 10px; color: #888; font-size: 0.9em;">
                 <span class="status disconnected" id="status"></span>
                 <span id="statusText">Disconnected</span>
-                <span class="chart-hint">Use /* chart: bar|line|pie|scatter|histogram */ in SQL comments for auto-charting</span>
             </p>
         </div>
 
-        <!-- Collaboration Panel -->
-        <div class="collaboration-panel" id="collaborationPanel">
-            <h3>Active Users</h3>
-            <div class="connected-users" id="connectedUsers">
-                <!-- Connected users will be listed here -->
-            </div>
-        </div>
-
-        <!-- Progress Bar -->
-        <div class="progress-container" id="progressContainer">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div class="progress-text">
-                <span id="progressText">Processing query...</span>
-                <span id="progressPercent">0%</span>
-            </div>
-        </div>
-
-        <!-- Notifications Panel -->
-        <div class="notifications-panel" id="notificationsPanel">
-            <!-- Notifications will be listed here -->
-        </div>
-
-        <!-- Tab Navigation -->
-        <div class="tab-nav">
-            <button class="tab-button active" onclick="switchTab('query')">Query</button>
-            <button class="tab-button" onclick="switchTab('compare')">Compare</button>
-        </div>
-
-        <!-- Query Tab Content -->
-        <div class="tab-content active" id="queryTab">
         <div class="main-content">
             <div class="sidebar">
                 <h3>Tables</h3>
@@ -1800,148 +729,73 @@ Examples:
 SELECT * FROM users LIMIT 10
 SELECT name, sqlite_master.* FROM sqlite_master
 
-Chart Hints (add in SQL comment):
-/* chart: bar */ - Bar chart
-/* chart: line */ - Line chart
-/* chart: pie */ - Pie chart
-/* chart: scatter */ - Scatter plot
-/* chart: histogram */ - Histogram"></textarea>
+Chart Examples (add /* chart:type */ comment):
+/* chart:bar */ SELECT category, COUNT(*) as count FROM sales GROUP BY category
+/* chart:line */ SELECT date, revenue FROM sales ORDER BY date
+/* chart:pie */ SELECT status, COUNT(*) as count FROM orders GROUP BY status
+/* chart:scatter */ SELECT x_coord, y_coord FROM coordinates
+/* chart:histogram */ SELECT price FROM products"></textarea>
                     <div class="query-actions">
                         <button class="btn-success" onclick="executeQuery()">Execute Query</button>
                         <button class="btn-primary" onclick="loadTables()">Refresh Tables</button>
-                        <button class="btn-secondary" onclick="showChartHelp()">Chart Help</button>
                     </div>
                 </div>
 
                 <div class="results-panel" id="resultsPanel" style="display: none;">
                     <div class="results-header">
-                        <div class="results-title">
-                            <h3>Results</h3>
-                            <div class="view-toggle" id="viewToggle" style="display: none;">
-                                <button id="tableViewBtn" class="active" onclick="switchView('table')">Table</button>
-                                <button id="chartViewBtn" onclick="switchView('chart')">Chart</button>
-                            </div>
+                        <h3>Results</h3>
+                        <div class="view-toggles" id="viewToggles" style="display: none;">
+                            <button class="view-toggle active" data-view="table" onclick="switchView('table')">Table</button>
+                            <button class="view-toggle" data-view="chart" onclick="switchView('chart')">Chart</button>
                         </div>
                         <span class="results-info" id="resultsInfo"></span>
                     </div>
+
+                    <!-- Chart Controls -->
+                    <div class="chart-controls" id="chartControls">
+                        <div class="chart-controls-row">
+                            <div class="chart-type-buttons">
+                                <button class="chart-type-btn" data-type="bar" onclick="setChartType('bar')">Bar</button>
+                                <button class="chart-type-btn" data-type="line" onclick="setChartType('line')">Line</button>
+                                <button class="chart-type-btn" data-type="pie" onclick="setChartType('pie')">Pie</button>
+                                <button class="chart-type-btn" data-type="scatter" onclick="setChartType('scatter')">Scatter</button>
+                                <button class="chart-type-btn" data-type="histogram" onclick="setChartType('histogram')">Histogram</button>
+                            </div>
+                            <div class="chart-suggestion" id="chartSuggestion"></div>
+                        </div>
+                        <div class="chart-controls-row">
+                            <div class="chart-control-group">
+                                <label>X-Axis / Labels</label>
+                                <select class="chart-select" id="xAxisSelect" onchange="updateChart()"></select>
+                            </div>
+                            <div class="chart-control-group">
+                                <label>Y-Axis / Values</label>
+                                <select class="chart-select" id="yAxisSelect" onchange="updateChart()"></select>
+                            </div>
+                            <div class="chart-control-group">
+                                <label>Group By (Optional)</label>
+                                <select class="chart-select" id="groupSelect" onchange="updateChart()">
+                                    <option value="">None</option>
+                                </select>
+                            </div>
+                            <div style="margin-left: auto;">
+                                <button class="btn-secondary btn-small" onclick="exportChart()">Export PNG</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart Container -->
+                    <div class="chart-container" id="chartContainer">
+                        <div class="chart-canvas-wrapper">
+                            <canvas class="chart-canvas" id="chartCanvas"></canvas>
+                            <div class="chart-tooltip" id="chartTooltip"></div>
+                        </div>
+                        <div class="chart-legend" id="chartLegend"></div>
+                    </div>
+
+                    <!-- Results Content -->
                     <div id="resultsContent"></div>
                 </div>
-            </div>
-        </div>
-        </div>
-
-        <!-- Compare Tab Content -->
-        <div class="tab-content" id="compareTab">
-            <div class="compare-panel">
-                <h3 style="color: #00d9ff; margin-bottom: 15px;">Database Comparison</h3>
-                <div class="compare-databases">
-                    <div class="db-input-group">
-                        <label for="compareDb1">Left Database</label>
-                        <input type="text" id="compareDb1" placeholder="/path/to/database1.db" value="./test.db">
-                    </div>
-                    <div class="vs-divider">VS</div>
-                    <div class="db-input-group">
-                        <label for="compareDb2">Right Database</label>
-                        <input type="text" id="compareDb2" placeholder="/path/to/database2.db" value="./test2.db">
-                    </div>
-                </div>
-
-                <div class="compare-actions">
-                    <button class="btn-success" onclick="startComparison()">Compare Databases</button>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="includeData" checked>
-                        <label for="includeData">Include data comparison</label>
-                    </div>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="useChecksums">
-                        <label for="useChecksums">Use checksums for data</label>
-                    </div>
-                </div>
-            </div>
-
-            <div id="comparisonResults" style="display: none;">
-                <div class="diff-view">
-                    <div class="diff-header">
-                        <h3 style="color: #00d9ff;">Schema Differences</h3>
-                        <div class="export-actions">
-                            <button class="btn-secondary" onclick="exportDiffReport()">Export Report</button>
-                        </div>
-                    </div>
-
-                    <div class="diff-summary" id="diffSummary">
-                        <div class="diff-stat added">
-                            <div class="diff-stat-value" id="addedCount">0</div>
-                            <div class="diff-stat-label">Tables Added</div>
-                        </div>
-                        <div class="diff-stat removed">
-                            <div class="diff-stat-value" id="removedCount">0</div>
-                            <div class="diff-stat-label">Tables Removed</div>
-                        </div>
-                        <div class="diff-stat modified">
-                            <div class="diff-stat-value" id="modifiedCount">0</div>
-                            <div class="diff-stat-label">Tables Modified</div>
-                        </div>
-                    </div>
-
-                    <div class="diff-section" id="addedTablesSection" style="display: none;">
-                        <h4>Added Tables</h4>
-                        <div id="addedTablesList"></div>
-                    </div>
-
-                    <div class="diff-section" id="removedTablesSection" style="display: none;">
-                        <h4>Removed Tables</h4>
-                        <div id="removedTablesList"></div>
-                    </div>
-
-                    <div class="diff-section" id="modifiedTablesSection" style="display: none;">
-                        <h4>Modified Tables</h4>
-                        <div id="modifiedTablesList"></div>
-                    </div>
-
-                    <div class="diff-section" id="dataDiffSection" style="display: none;">
-                        <h4>Data Differences</h4>
-                        <div id="dataDiffList"></div>
-                    </div>
-                </div>
-
-                <div class="sync-panel">
-                    <h3 style="color: #00d9ff; margin-bottom: 15px;">Sync Configuration</h3>
-                    <div class="sync-options">
-                        <div class="sync-direction">
-                            <label>Direction:</label>
-                            <select id="syncDirection">
-                                <option value="left-to-right">Left → Right</option>
-                                <option value="right-to-left">Right → Left</option>
-                            </select>
-                        </div>
-                        <button class="btn-warning" onclick="generateSyncScript()">Generate Sync Script</button>
-                    </div>
-
-                    <div id="syncPreview" style="display: none;">
-                        <h4 style="color: #00d9ff; margin: 15px 0;">Sync Script Preview</h4>
-                        <div class="sync-preview">
-                            <pre class="sql-preview" id="syncSqlPreview"></pre>
-                        </div>
-                        <div class="export-actions">
-                            <button class="btn-success" onclick="executeSync()">Execute Sync</button>
-                            <button class="btn-secondary" onclick="exportSyncScript()">Export Sync Script</button>
-                            <button class="btn-secondary" onclick="cancelSync()">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="comparisonLoading" style="display: none;">
-                <div class="comparison-loading">
-                    <div class="spinner"></div>
-                    <p>Comparing databases...</p>
-                </div>
-            </div>
-
-            <div id="comparisonEmpty" class="empty-state-compare">
-                <div class="empty-state-icon">⚖️</div>
-                <h3>Compare Two Databases</h3>
-                <p>Enter the paths to two SQLite databases above and click "Compare Databases" to see the differences.</p>
             </div>
         </div>
     </div>
@@ -1951,363 +805,587 @@ Chart Hints (add in SQL comment):
         let connected = false;
         let authToken = null;
         let currentUser = null;
-        let currentResults = null;
-        let currentChart = null;
+
+        // Visualization state
+        let chartData = null;
+        let chartType = 'bar';
         let currentView = 'table';
-        let chartConfig = {
-            type: 'bar',
-            xColumn: null,
-            yColumns: [],
-            aggregate: 'sum',
-            groupBy: null
-        };
+        let chartInstance = null;
+        let zoomState = { offsetX: 0, offsetY: 0, scale: 1 };
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
 
-        // WebSocket client
-        let wsClient = null;
-        let connectedUsers = new Map();
-        let activeNotifications = new Map();
+        // Color palette for charts
+        const CHART_COLORS = [
+            '#00d9ff', '#00ff88', '#ff6b6b', '#ffd93d', '#6bcb77',
+            '#4d96ff', '#ff6eb4', '#a29bfe', '#fd79a8', '#00b894',
+            '#e17055', '#0984e3', '#6c5ce7', '#fdcb6e', '#e84393'
+        ];
 
-        // WebSocket event types (matching server)
-        const WSMessageType = {
-            QUERY_STARTED: 'query:started',
-            QUERY_PROGRESS: 'query:progress',
-            QUERY_COMPLETE: 'query:complete',
-            QUERY_ERROR: 'query:error',
-            QUERY_CANCELLED: 'query:cancelled',
-            TABLE_CREATED: 'table:created',
-            TABLE_MODIFIED: 'table:modified',
-            TABLE_DROPPED: 'table:dropped',
-            USER_JOINED: 'user:joined',
-            USER_LEFT: 'user:left',
-            USER_CURSOR: 'user:cursor',
-            CONNECTION_ACK: 'connection:ack',
-            HEARTBEAT: 'heartbeat',
-            ERROR: 'error',
-        };
+        // Chart rendering engine
+        class ChartRenderer {
+            constructor(canvas, tooltip) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.tooltip = tooltip;
+                this.data = null;
+                this.type = 'bar';
+                this.colors = CHART_COLORS;
+                this.padding = { top: 40, right: 40, bottom: 60, left: 70 };
+                this.hoveredPoint = null;
+                this.setupEventListeners();
+            }
 
-        // Initialize WebSocket client
-        function initWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            setupEventListeners() {
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.canvas.addEventListener('mouseleave', () => this.hideTooltip());
+                this.canvas.addEventListener('click', (e) => this.handleClick(e));
+                this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
+                this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+                this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+                this.canvas.addEventListener('mouseleave', () => { isDragging = false; });
+            }
 
-            wsClient = {
-                ws: null,
-                reconnectTimer: null,
-                reconnectAttempts: 0,
-                maxReconnectAttempts: 10,
-                reconnectInterval: 3000,
-                handlers: {},
-                connect: function() {
-                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                        return;
+            resize() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                this.canvas.width = rect.width * dpr;
+                this.canvas.height = rect.height * dpr;
+                this.ctx.scale(dpr, dpr);
+                this.canvas.style.width = rect.width + 'px';
+                this.canvas.style.height = rect.height + 'px';
+                this.render();
+            }
+
+            setData(data, type) {
+                this.data = this.processData(data, type);
+                this.type = type;
+                this.render();
+                this.updateLegend();
+            }
+
+            processData(data, type) {
+                if (!data || !data.rows || data.rows.length === 0) return null;
+
+                const rows = data.rows;
+                const xCol = data.xAxis;
+                const yCol = data.yAxis;
+                const groupCol = data.groupBy;
+
+                let processed = { labels: [], datasets: [], maxValue: 0 };
+
+                if (type === 'pie') {
+                    // Pie chart: aggregate values
+                    const groups = {};
+                    rows.forEach(row => {
+                        const key = row[xCol] || 'NULL';
+                        const val = parseFloat(row[yCol]) || 0;
+                        groups[key] = (groups[key] || 0) + val;
+                    });
+                    processed.labels = Object.keys(groups);
+                    processed.datasets = [{
+                        data: Object.values(groups),
+                        colors: this.colors.slice(0, Object.keys(groups).length)
+                    }];
+                } else if (type === 'histogram') {
+                    // Histogram: bin the data
+                    const values = rows.map(row => parseFloat(row[yCol])).filter(v => !isNaN(v));
+                    const binCount = Math.min(20, Math.ceil(Math.sqrt(values.length)));
+                    const min = Math.min(...values);
+                    const max = Math.max(...values);
+                    const binSize = (max - min) / binCount || 1;
+
+                    const bins = new Array(binCount).fill(0);
+                    const binLabels = [];
+                    for (let i = 0; i < binCount; i++) {
+                        const binStart = min + i * binSize;
+                        const binEnd = min + (i + 1) * binSize;
+                        binLabels.push(`${binStart.toFixed(2)} - ${binEnd.toFixed(2)}`);
                     }
 
-                    this.ws = new WebSocket(wsUrl);
+                    values.forEach(v => {
+                        const binIndex = Math.min(Math.floor((v - min) / binSize), binCount - 1);
+                        bins[binIndex]++;
+                    });
 
-                    this.ws.onopen = () => {
-                        console.log('[WS] Connected');
-                        this.reconnectAttempts = 0;
-                        updateWSStatus('connected');
-                        this.scheduleHeartbeat();
-                    };
+                    processed.labels = binLabels;
+                    processed.datasets = [{
+                        data: bins,
+                        colors: this.colors.slice(0, binCount)
+                    }];
+                } else if (type === 'scatter') {
+                    // Scatter plot: x and y coordinates
+                    processed.points = rows.map(row => ({
+                        x: parseFloat(row[xCol]) || 0,
+                        y: parseFloat(row[yCol]) || 0,
+                        original: row
+                    }));
+                    processed.maxX = Math.max(...processed.points.map(p => p.x), 1);
+                    processed.maxY = Math.max(...processed.points.map(p => p.y), 1);
+                } else {
+                    // Bar and Line charts
+                    if (groupCol) {
+                        // Grouped data
+                        const groups = {};
+                        rows.forEach(row => {
+                            const group = row[groupCol] || 'NULL';
+                            if (!groups[group]) groups[group] = [];
+                            groups[group].push({ x: row[xCol], y: parseFloat(row[yCol]) || 0, original: row });
+                        });
 
-                    this.ws.onmessage = (event) => {
-                        try {
-                            const message = JSON.parse(event.data);
-                            this.handleMessage(message);
-                        } catch (error) {
-                            console.error('[WS] Error parsing message:', error);
-                        }
-                    };
+                        const allLabels = [...new Set(rows.map(r => r[xCol]))];
+                        processed.labels = allLabels;
 
-                    this.ws.onclose = (event) => {
-                        console.log('[WS] Disconnected:', event.code, event.reason);
-                        updateWSStatus('disconnected');
-                        this.scheduleReconnect();
-                    };
-
-                    this.ws.onerror = (error) => {
-                        console.error('[WS] Error:', error);
-                        updateWSStatus('disconnected');
-                    };
-                },
-                disconnect: function() {
-                    this.reconnectAttempts = this.maxReconnectAttempts;
-                    if (this.reconnectTimer) {
-                        clearTimeout(this.reconnectTimer);
-                    }
-                    if (this.ws) {
-                        this.ws.close();
-                    }
-                },
-                scheduleReconnect: function() {
-                    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-                        console.log('[WS] Max reconnection attempts reached');
-                        return;
-                    }
-
-                    this.reconnectAttempts++;
-                    const delay = this.reconnectInterval * Math.min(this.reconnectAttempts, 5);
-
-                    console.log(`[WS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-
-                    this.reconnectTimer = setTimeout(() => {
-                        this.connect();
-                    }, delay);
-                },
-                scheduleHeartbeat: function() {
-                    setInterval(() => {
-                        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                            this.send({
-                                type: WSMessageType.HEARTBEAT,
-                                channel: 'notifications',
-                                data: { timestamp: Date.now() }
+                        Object.keys(groups).forEach((group, i) => {
+                            const groupData = allLabels.map(label => {
+                                const item = groups[group].find(g => g.x === label);
+                                return item ? item.y : 0;
                             });
-                        }
-                    }, 30000);
-                },
-                send: function(message) {
-                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                        this.ws.send(JSON.stringify({
-                            ...message,
-                            id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                            timestamp: Date.now()
-                        }));
-                    }
-                },
-                on: function(eventType, handler) {
-                    if (!this.handlers[eventType]) {
-                        this.handlers[eventType] = [];
-                    }
-                    this.handlers[eventType].push(handler);
-                },
-                handleMessage: function(message) {
-                    const { type, data } = message;
-
-                    // Trigger registered handlers
-                    if (this.handlers[type]) {
-                        this.handlers[type].forEach(handler => handler(data));
+                            processed.datasets.push({
+                                label: group,
+                                data: groupData,
+                                color: this.colors[i % this.colors.length]
+                            });
+                        });
+                    } else {
+                        // Simple data
+                        processed.labels = rows.map(row => row[xCol]);
+                        const values = rows.map(row => parseFloat(row[yCol]) || 0);
+                        processed.datasets = [{
+                            data: values,
+                            color: this.colors[0]
+                        }];
                     }
 
-                    // Handle built-in events
-                    switch (type) {
-                        case WSMessageType.CONNECTION_ACK:
-                            console.log('[WS] Connection acknowledged:', data.clientId);
-                            break;
-
-                        case WSMessageType.QUERY_STARTED:
-                            handleQueryStarted(data);
-                            break;
-
-                        case WSMessageType.QUERY_PROGRESS:
-                            handleQueryProgress(data);
-                            break;
-
-                        case WSMessageType.QUERY_COMPLETE:
-                            handleQueryComplete(data);
-                            break;
-
-                        case WSMessageType.QUERY_ERROR:
-                            handleQueryError(data);
-                            break;
-
-                        case WSMessageType.TABLE_CREATED:
-                            handleTableCreated(data);
-                            break;
-
-                        case WSMessageType.TABLE_MODIFIED:
-                            handleTableModified(data);
-                            break;
-
-                        case WSMessageType.TABLE_DROPPED:
-                            handleTableDropped(data);
-                            break;
-
-                        case WSMessageType.USER_JOINED:
-                            handleUserJoined(data);
-                            break;
-
-                        case WSMessageType.USER_LEFT:
-                            handleUserLeft(data);
-                            break;
-                    }
+                    // Calculate max value for y-axis
+                    processed.maxValue = Math.max(...processed.datasets.flatMap(d => d.data), 1);
                 }
-            };
 
-            // Register event handlers
-            wsClient.on(WSMessageType.QUERY_PROGRESS, (data) => {
-                showProgress(data.progress, `${data.rowsProcessed || 0} rows processed`);
-            });
+                return processed;
+            }
 
-            wsClient.connect();
-        }
+            render() {
+                if (!this.data) return;
 
-        // WebSocket event handlers
-        function handleQueryStarted(data) {
-            showNotification('info', 'Query Started', `User ${data.username || 'Anonymous'} started a query`);
-        }
+                const rect = this.canvas.getBoundingClientRect();
+                const width = rect.width;
+                const height = rect.height;
 
-        function handleQueryProgress(data) {
-            updateProgress(data.progress, `${data.rowsProcessed || 0} rows processed`);
-        }
+                this.ctx.clearRect(0, 0, width, height);
+                this.ctx.save();
 
-        function handleQueryComplete(data) {
-            hideProgress();
-            if (data.queryId) {
-                showNotification('success', 'Query Complete', `Returned ${data.rowCount} rows in ${data.executionTime}ms`);
+                // Apply zoom and pan
+                this.ctx.translate(zoomState.offsetX, zoomState.offsetY);
+                this.ctx.scale(zoomState.scale, zoomState.scale);
+
+                const chartWidth = width - this.padding.left - this.padding.right;
+                const chartHeight = height - this.padding.top - this.padding.bottom;
+
+                switch (this.type) {
+                    case 'bar':
+                        this.renderBarChart(chartWidth, chartHeight);
+                        break;
+                    case 'line':
+                        this.renderLineChart(chartWidth, chartHeight);
+                        break;
+                    case 'pie':
+                        this.renderPieChart(width, height);
+                        break;
+                    case 'scatter':
+                        this.renderScatterChart(chartWidth, chartHeight);
+                        break;
+                    case 'histogram':
+                        this.renderBarChart(chartWidth, chartHeight);
+                        break;
+                }
+
+                this.ctx.restore();
+            }
+
+            renderBarChart(width, height) {
+                const { labels, datasets, maxValue } = this.data;
+                const barWidth = (width / labels.length) * 0.8;
+                const groupWidth = barWidth / datasets.length;
+                const maxValueScaled = maxValue * 1.1;
+
+                // Draw axes
+                this.drawAxes(width, height, labels, maxValueScaled);
+
+                // Draw bars
+                datasets.forEach((dataset, datasetIndex) => {
+                    dataset.data.forEach((value, i) => {
+                        const barHeight = (value / maxValueScaled) * height;
+                        const x = this.padding.left + (i * (width / labels.length)) +
+                                  (width / labels.length - barWidth) / 2 +
+                                  (datasetIndex * groupWidth);
+                        const y = this.padding.top + height - barHeight;
+
+                        this.ctx.fillStyle = dataset.color || dataset.colors[i];
+                        this.ctx.fillRect(x, y, groupWidth - 2, barHeight);
+
+                        // Store bar position for tooltip
+                        if (!dataset.positions) dataset.positions = [];
+                        dataset.positions[i] = { x, y, width: groupWidth - 2, height: barHeight, value, label: labels[i] };
+                    });
+                });
+            }
+
+            renderLineChart(width, height) {
+                const { labels, datasets, maxValue } = this.data;
+                const maxValueScaled = maxValue * 1.1;
+                const pointSpacing = width / (labels.length - 1 || 1);
+
+                // Draw axes
+                this.drawAxes(width, height, labels, maxValueScaled);
+
+                // Draw lines
+                datasets.forEach(dataset => {
+                    if (dataset.data.length === 0) return;
+
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = dataset.color;
+                    this.ctx.lineWidth = 3;
+
+                    dataset.data.forEach((value, i) => {
+                        const x = this.padding.left + (i * pointSpacing);
+                        const y = this.padding.top + height - ((value / maxValueScaled) * height);
+
+                        if (i === 0) {
+                            this.ctx.moveTo(x, y);
+                        } else {
+                            this.ctx.lineTo(x, y);
+                        }
+
+                        // Store point position for tooltip
+                        if (!dataset.positions) dataset.positions = [];
+                        dataset.positions[i] = { x, y, value, label: labels[i] };
+                    });
+
+                    this.ctx.stroke();
+
+                    // Draw points
+                    dataset.data.forEach((value, i) => {
+                        const x = this.padding.left + (i * pointSpacing);
+                        const y = this.padding.top + height - ((value / maxValueScaled) * height);
+
+                        this.ctx.beginPath();
+                        this.ctx.fillStyle = dataset.color;
+                        this.ctx.arc(x, y, 5, 0, Math.PI * 2);
+                        this.ctx.fill();
+
+                        this.ctx.beginPath();
+                        this.ctx.fillStyle = '#fff';
+                        this.ctx.arc(x, y, 3, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    });
+                });
+            }
+
+            renderPieChart(width, height) {
+                const { labels, datasets } = this.data;
+                const data = datasets[0].data;
+                const colors = datasets[0].colors;
+                const total = data.reduce((sum, val) => sum + val, 0);
+
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const radius = Math.min(width, height) / 2 - 40;
+
+                let startAngle = -Math.PI / 2;
+
+                data.forEach((value, i) => {
+                    const sliceAngle = (value / total) * Math.PI * 2;
+                    const endAngle = startAngle + sliceAngle;
+
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(centerX, centerY);
+                    this.ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                    this.ctx.closePath();
+
+                    this.ctx.fillStyle = colors[i];
+                    this.ctx.fill();
+
+                    // Store slice position for tooltip
+                    if (!datasets[0].positions) datasets[0].positions = [];
+                    datasets[0].positions[i] = {
+                        centerX, centerY, radius,
+                        startAngle, endAngle,
+                        value, label: labels[i],
+                        percentage: ((value / total) * 100).toFixed(1)
+                    };
+
+                    startAngle = endAngle;
+                });
+
+                // Draw center circle for donut effect
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, radius * 0.5, 0, Math.PI * 2);
+                this.ctx.fillStyle = '#0f3460';
+                this.ctx.fill();
+            }
+
+            renderScatterChart(width, height) {
+                const { points, maxX, maxY } = this.data;
+                const padding = 20;
+
+                this.ctx.strokeStyle = '#333';
+                this.ctx.lineWidth = 1;
+
+                // Draw grid
+                for (let i = 0; i <= 5; i++) {
+                    const y = this.padding.top + (height / 5) * i;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.padding.left, y);
+                    this.ctx.lineTo(this.padding.left + width, y);
+                    this.ctx.stroke();
+                }
+
+                for (let i = 0; i <= 5; i++) {
+                    const x = this.padding.left + (width / 5) * i;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, this.padding.top);
+                    this.ctx.lineTo(x, this.padding.top + height);
+                    this.ctx.stroke();
+                }
+
+                // Draw axes
+                this.ctx.strokeStyle = '#888';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.padding.left, this.padding.top);
+                this.ctx.lineTo(this.padding.left, this.padding.top + height);
+                this.ctx.lineTo(this.padding.left + width, this.padding.top + height);
+                this.ctx.stroke();
+
+                // Draw axis labels
+                this.ctx.fillStyle = '#888';
+                this.ctx.font = '12px sans-serif';
+                this.ctx.textAlign = 'center';
+
+                for (let i = 0; i <= 5; i++) {
+                    const y = this.padding.top + height - (height / 5) * i;
+                    const val = ((maxY / 5) * i).toFixed(1);
+                    this.ctx.fillText(val, this.padding.left - 10, y + 4);
+                }
+
+                for (let i = 0; i <= 5; i++) {
+                    const x = this.padding.left + (width / 5) * i;
+                    const val = ((maxX / 5) * i).toFixed(1);
+                    this.ctx.fillText(val, x, this.padding.top + height + 20);
+                }
+
+                // Draw points
+                points.forEach((point, i) => {
+                    const x = this.padding.left + ((point.x / maxX) * width);
+                    const y = this.padding.top + height - ((point.y / maxY) * height);
+
+                    this.ctx.beginPath();
+                    this.ctx.fillStyle = this.colors[0];
+                    this.ctx.globalAlpha = 0.7;
+                    this.ctx.arc(x, y, 6, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.globalAlpha = 1;
+
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = '#fff';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.arc(x, y, 6, 0, Math.PI * 2);
+                    this.ctx.stroke();
+
+                    if (!points.positions) points.positions = [];
+                    points.positions = points.positions || [];
+                    points.positions[i] = { x, y, point };
+                });
+            }
+
+            drawAxes(width, height, labels, maxValue) {
+                this.ctx.strokeStyle = '#888';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.padding.left, this.padding.top);
+                this.ctx.lineTo(this.padding.left, this.padding.top + height);
+                this.ctx.lineTo(this.padding.left + width, this.padding.top + height);
+                this.ctx.stroke();
+
+                // Draw grid and y-axis labels
+                this.ctx.strokeStyle = '#333';
+                this.ctx.lineWidth = 1;
+                this.ctx.fillStyle = '#888';
+                this.ctx.font = '12px sans-serif';
+                this.ctx.textAlign = 'right';
+
+                for (let i = 0; i <= 5; i++) {
+                    const y = this.padding.top + height - (height / 5) * i;
+                    const val = ((maxValue / 5) * i).toFixed(1);
+
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.padding.left, y);
+                    this.ctx.lineTo(this.padding.left + width, y);
+                    this.ctx.stroke();
+
+                    this.ctx.fillText(val, this.padding.left - 10, y + 4);
+                }
+
+                // Draw x-axis labels
+                this.ctx.textAlign = 'center';
+                const labelStep = Math.ceil(labels.length / 10);
+                labels.forEach((label, i) => {
+                    if (i % labelStep !== 0) return;
+                    const x = this.padding.left + (i * (width / labels.length)) + (width / labels.length) / 2;
+                    const y = this.padding.top + height + 20;
+
+                    const displayLabel = String(label).length > 15
+                        ? String(label).substring(0, 12) + '...'
+                        : label;
+                    this.ctx.fillText(displayLabel, x, y);
+                });
+            }
+
+            handleMouseMove(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left - zoomState.offsetX;
+                const y = e.clientY - rect.top - zoomState.offsetY;
+
+                this.hoveredPoint = null;
+
+                if (this.type === 'scatter' && this.data.points) {
+                    this.data.points.positions?.forEach((pos, i) => {
+                        const dist = Math.sqrt(Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2));
+                        if (dist < 10) {
+                            this.hoveredPoint = { type: 'scatter', data: pos.point, x: pos.x, y: pos.y };
+                        }
+                    });
+                } else if (this.data.datasets) {
+                    this.data.datasets.forEach(dataset => {
+                        dataset.positions?.forEach((pos, i) => {
+                            if (this.type === 'pie') {
+                                const dx = x - pos.centerX;
+                                const dy = y - pos.centerY;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+                                if (dist < pos.radius) {
+                                    let angle = Math.atan2(dy, dx);
+                                    if (angle < -Math.PI / 2) angle += Math.PI * 2;
+                                    if (angle >= pos.startAngle && angle <= pos.endAngle) {
+                                        this.hoveredPoint = { type: 'pie', data: pos, x, y };
+                                    }
+                                }
+                            } else {
+                                if (x >= pos.x && x <= pos.x + (pos.width || 10) &&
+                                    y >= pos.y && y <= pos.y + (pos.height || 10)) {
+                                    this.hoveredPoint = { type: 'bar/line', data: pos, dataset: dataset.label };
+                                }
+                            }
+                        });
+                    });
+                }
+
+                if (this.hoveredPoint) {
+                    this.showTooltip(this.hoveredPoint, e.clientX, e.clientY);
+                    this.canvas.style.cursor = 'pointer';
+                } else {
+                    this.hideTooltip();
+                    this.canvas.style.cursor = isDragging ? 'grabbing' : 'grab';
+                }
+            }
+
+            handleClick(e) {
+                if (this.hoveredPoint && this.hoveredPoint.data.original) {
+                    // Drill down: show original row data
+                    const row = this.hoveredPoint.data.original;
+                    let rowInfo = Object.entries(row)
+                        .map(([k, v]) => `${k}: ${v}`)
+                        .join('\n');
+                    alert(`Row Data:\n${rowInfo}`);
+                }
+            }
+
+            handleWheel(e) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                zoomState.scale = Math.max(0.5, Math.min(3, zoomState.scale * delta));
+                this.render();
+            }
+
+            handleMouseDown(e) {
+                isDragging = true;
+                dragStart = { x: e.clientX - zoomState.offsetX, y: e.clientY - zoomState.offsetY };
+                this.canvas.style.cursor = 'grabbing';
+            }
+
+            handleMouseUp(e) {
+                if (isDragging) {
+                    zoomState.offsetX = e.clientX - dragStart.x;
+                    zoomState.offsetY = e.clientY - dragStart.y;
+                    isDragging = false;
+                    this.render();
+                }
+            }
+
+            showTooltip(point, mouseX, mouseY) {
+                let html = '<div class="chart-tooltip-title">';
+                let content = '';
+
+                if (point.type === 'scatter') {
+                    html += 'Data Point';
+                    content = `
+                        <div class="chart-tooltip-row"><span class="chart-tooltip-label">X:</span><span class="chart-tooltip-value">${point.data.x.toFixed(2)}</span></div>
+                        <div class="chart-tooltip-row"><span class="chart-tooltip-label">Y:</span><span class="chart-tooltip-value">${point.data.y.toFixed(2)}</span></div>
+                    `;
+                } else if (point.type === 'pie') {
+                    html += point.data.label;
+                    content = `
+                        <div class="chart-tooltip-row"><span class="chart-tooltip-label">Value:</span><span class="chart-tooltip-value">${point.data.value.toFixed(2)}</span></div>
+                        <div class="chart-tooltip-row"><span class="chart-tooltip-label">Percentage:</span><span class="chart-tooltip-value">${point.data.percentage}%</span></div>
+                    `;
+                } else {
+                    html += point.dataset || point.data.label;
+                    content = `
+                        <div class="chart-tooltip-row"><span class="chart-tooltip-label">${point.data.label}:</span><span class="chart-tooltip-value">${point.data.value.toFixed(2)}</span></div>
+                    `;
+                }
+
+                this.tooltip.innerHTML = html + '</div>' + content;
+
+                const rect = this.canvas.getBoundingClientRect();
+                const x = mouseX - rect.left + 15;
+                const y = mouseY - rect.top + 15;
+
+                this.tooltip.style.left = x + 'px';
+                this.tooltip.style.top = y + 'px';
+                this.tooltip.classList.add('visible');
+            }
+
+            hideTooltip() {
+                this.tooltip.classList.remove('visible');
+            }
+
+            updateLegend() {
+                const legend = document.getElementById('chartLegend');
+                if (!this.data || this.type === 'scatter' || this.type === 'histogram') {
+                    legend.innerHTML = '';
+                    return;
+                }
+
+                if (this.type === 'pie') {
+                    legend.innerHTML = this.data.labels.map((label, i) => `
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: ${this.data.datasets[0].colors[i]}"></div>
+                            <span>${label}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    legend.innerHTML = this.data.datasets.map(ds => `
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: ${ds.color}"></div>
+                            <span>${ds.label || 'Value'}</span>
+                        </div>
+                    `).join('');
+                }
             }
         }
 
-        function handleQueryError(data) {
-            hideProgress();
-            showNotification('error', 'Query Error', data.error);
-        }
-
-        function handleTableCreated(data) {
-            showNotification('success', 'Table Created', `Table "${data.tableName}" was created`);
-            if (connected && currentDbPath === data.dbPath) {
-                loadTables();
-            }
-        }
-
-        function handleTableModified(data) {
-            showNotification('info', 'Table Modified', `Table "${data.tableName}" was modified`);
-        }
-
-        function handleTableDropped(data) {
-            showNotification('warning', 'Table Dropped', `Table "${data.tableName}" was dropped`);
-            if (connected && currentDbPath === data.dbPath) {
-                loadTables();
-            }
-        }
-
-        function handleUserJoined(data) {
-            connectedUsers.set(data.userId, data);
-            updateCollaborationPanel();
-            showNotification('info', 'User Joined', `${data.username} joined the session`);
-        }
-
-        function handleUserLeft(data) {
-            connectedUsers.delete(data.userId);
-            updateCollaborationPanel();
-            showNotification('info', 'User Left', `${data.username} left the session`);
-        }
-
-        // UI update functions
-        function updateWSStatus(status) {
-            const indicator = document.getElementById('wsIndicator');
-            const statusText = document.getElementById('wsStatusText');
-
-            if (status === 'connected') {
-                indicator.className = 'ws-indicator connected';
-                statusText.textContent = 'Connected';
-            } else if (status === 'connecting') {
-                indicator.className = 'ws-indicator connecting';
-                statusText.textContent = 'Connecting...';
-            } else {
-                indicator.className = 'ws-indicator disconnected';
-                statusText.textContent = 'Disconnected';
-            }
-        }
-
-        function updateCollaborationPanel() {
-            const panel = document.getElementById('collaborationPanel');
-            const container = document.getElementById('connectedUsers');
-
-            if (connectedUsers.size === 0) {
-                panel.classList.remove('active');
-                return;
-            }
-
-            panel.classList.add('active');
-            container.innerHTML = Array.from(connectedUsers.values()).map(user => `
-                <div class="user-chip">
-                    <div class="user-chip-avatar">${user.username.charAt(0).toUpperCase()}</div>
-                    <span>${user.username}</span>
-                </div>
-            `).join('');
-        }
-
-        function showProgress(percent, message) {
-            const container = document.getElementById('progressContainer');
-            const fill = document.getElementById('progressFill');
-            const text = document.getElementById('progressText');
-            const percentText = document.getElementById('progressPercent');
-
-            container.classList.add('active');
-            fill.style.width = `${percent}%`;
-            text.textContent = message || 'Processing...';
-            percentText.textContent = `${Math.round(percent)}%`;
-        }
-
-        function updateProgress(percent, message) {
-            showProgress(percent, message);
-        }
-
-        function hideProgress() {
-            const container = document.getElementById('progressContainer');
-            container.classList.remove('active');
-        }
-
-        function showNotification(type, title, message) {
-            const panel = document.getElementById('notificationsPanel');
-            const notificationId = `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.id = notificationId;
-            notification.innerHTML = `
-                <div class="notification-header">
-                    <span class="notification-title">${title}</span>
-                    <button class="notification-close" onclick="dismissNotification('${notificationId}')">&times;</button>
-                </div>
-                <div class="notification-body">${message}</div>
-                <div class="notification-time">${new Date().toLocaleTimeString()}</div>
-            `;
-
-            panel.appendChild(notification);
-            activeNotifications.set(notificationId, notification);
-
-            // Auto-dismiss after 5 seconds
-            setTimeout(() => {
-                dismissNotification(notificationId);
-            }, 5000);
-        }
-
-        function dismissNotification(notificationId) {
-            const notification = activeNotifications.get(notificationId);
-            if (notification) {
-                notification.style.animation = 'slideIn 0.3s ease-out reverse';
-                setTimeout(() => {
-                    notification.remove();
-                    activeNotifications.delete(notificationId);
-                }, 300);
-            }
-        }
-
-        // Color themes matching UI
-        const chartColors = {
-            backgrounds: [
-                'rgba(0, 217, 255, 0.7)',
-                'rgba(0, 255, 136, 0.7)',
-                'rgba(255, 159, 67, 0.7)',
-                'rgba(255, 107, 107, 0.7)',
-                'rgba(147, 51, 234, 0.7)',
-                'rgba(236, 72, 153, 0.7)',
-                'rgba(59, 130, 246, 0.7)',
-                'rgba(16, 185, 129, 0.7)'
-            ],
-            borders: [
-                'rgba(0, 217, 255, 1)',
-                'rgba(0, 255, 136, 1)',
-                'rgba(255, 159, 67, 1)',
-                'rgba(255, 107, 107, 1)',
-                'rgba(147, 51, 234, 1)',
-                'rgba(236, 72, 153, 1)',
-                'rgba(59, 130, 246, 1)',
-                'rgba(16, 185, 129, 1)'
-            ]
-        };
+        // Initialize chart renderer
+        let chartRenderer = null;
 
         // Check authentication status on load
         async function checkAuth() {
@@ -2316,12 +1394,10 @@ Chart Hints (add in SQL comment):
                 const config = await response.json();
 
                 if (!config.enabled) {
-                    // Auth disabled, show main UI
                     showMainUI();
                     return;
                 }
 
-                // Check if user is logged in
                 const meResponse = await fetch('/auth/me');
                 const meData = await meResponse.json();
 
@@ -2333,7 +1409,7 @@ Chart Hints (add in SQL comment):
                 }
             } catch (error) {
                 console.error('Auth check failed:', error);
-                showMainUI(); // Fallback to showing UI
+                showMainUI();
             }
         }
 
@@ -2347,17 +1423,17 @@ Chart Hints (add in SQL comment):
             document.getElementById('mainContainer').style.display = 'block';
 
             if (currentUser) {
-                // Update user info bar
                 document.getElementById('userName').textContent = currentUser.username;
                 document.getElementById('userRole').textContent = formatRole(currentUser.role);
                 document.getElementById('userAvatar').textContent = currentUser.username.charAt(0).toUpperCase();
             } else {
-                // Hide user bar if auth is disabled
                 document.getElementById('userBar').style.display = 'none';
             }
 
-            // Initialize WebSocket connection
-            initWebSocket();
+            // Initialize chart renderer
+            const canvas = document.getElementById('chartCanvas');
+            const tooltip = document.getElementById('chartTooltip');
+            chartRenderer = new ChartRenderer(canvas, tooltip);
         }
 
         function formatRole(role) {
@@ -2411,7 +1487,6 @@ Chart Hints (add in SQL comment):
             }
         }
 
-        // Helper function to make authenticated requests
         async function authenticatedFetch(url, options = {}) {
             const headers = {
                 'Content-Type': 'application/json',
@@ -2428,7 +1503,6 @@ Chart Hints (add in SQL comment):
             });
         }
 
-        // Check auth on page load
         checkAuth();
 
         async function connect() {
@@ -2439,7 +1513,6 @@ Chart Hints (add in SQL comment):
             }
 
             try {
-                // Just load tables to verify connection
                 const response = await authenticatedFetch('/api/tables', {
                     method: 'POST',
                     body: JSON.stringify({ dbPath })
@@ -2523,7 +1596,7 @@ Chart Hints (add in SQL comment):
 
                 if (data.success) {
                     if (data.rows !== undefined) {
-                        displayResults(data.rows, data.rowCount);
+                        displayResults(data.rows, data.rowCount, sql);
                     } else {
                         showSuccess(`Query executed successfully. ${data.changes || 0} row(s) affected.`);
                     }
@@ -2535,29 +1608,232 @@ Chart Hints (add in SQL comment):
             }
         }
 
-        function displayResults(rows, rowCount) {
+        function displayResults(rows, rowCount, sql) {
             const resultsPanel = document.getElementById('resultsPanel');
             const resultsContent = document.getElementById('resultsContent');
             const resultsInfo = document.getElementById('resultsInfo');
-            const viewToggle = document.getElementById('viewToggle');
+            const viewToggles = document.getElementById('viewToggles');
+            const chartControls = document.getElementById('chartControls');
 
             resultsPanel.style.display = 'block';
             resultsInfo.textContent = `${rowCount} row(s) returned`;
 
             if (!Array.isArray(rows) || rows.length === 0) {
                 resultsContent.innerHTML = '<div class="empty-state">No results</div>';
-                viewToggle.style.display = 'none';
+                viewToggles.style.display = 'none';
+                chartControls.classList.remove('visible');
                 return;
             }
 
-            // Check if data can be charted
-            if (canChartData(rows)) {
-                viewToggle.style.display = 'flex';
-            } else {
-                viewToggle.style.display = 'none';
+            // Store data for charting
+            chartData = { rows, rowCount };
+
+            // Parse SQL for chart type hint
+            const chartHint = parseChartHint(sql);
+            if (chartHint) {
+                chartType = chartHint;
             }
 
-            renderTable(rows);
+            // Detect columns and populate chart controls
+            populateChartControls(rows);
+
+            // Check if data is suitable for charting
+            const hasNumericData = detectNumericColumns(rows).length > 0;
+            if (hasNumericData) {
+                viewToggles.style.display = 'flex';
+                chartControls.classList.add('visible');
+
+                // Auto-suggest chart type
+                const suggestion = suggestChartType(rows);
+                if (suggestion && !chartHint) {
+                    chartType = suggestion;
+                }
+                updateChartTypeButtons();
+            } else {
+                viewToggles.style.display = 'none';
+                chartControls.classList.remove('visible');
+            }
+
+            // Render table view
+            renderTableView(rows);
+            currentView = 'table';
+            updateViewToggles();
+        }
+
+        function parseChartHint(sql) {
+            const match = sql.match(/\/\*\s*chart\s*:\s*(\w+)\s*\*\//i);
+            return match ? match[1].toLowerCase() : null;
+        }
+
+        function detectNumericColumns(rows) {
+            if (!rows || rows.length === 0) return [];
+            const firstRow = rows[0];
+            return Object.keys(firstRow).filter(col => {
+                const val = firstRow[col];
+                return val !== null && val !== '' && !isNaN(parseFloat(val));
+            });
+        }
+
+        function detectDateColumns(rows) {
+            if (!rows || rows.length === 0) return [];
+            const firstRow = rows[0];
+            return Object.keys(firstRow).filter(col => {
+                const val = firstRow[col];
+                return val !== null && !isNaN(Date.parse(val));
+            });
+        }
+
+        function suggestChartType(rows) {
+            const numericCols = detectNumericColumns(rows);
+            const dateCols = detectDateColumns(rows);
+            const colCount = Object.keys(rows[0]).length;
+            const rowCount = rows.length;
+
+            // If has date column and numeric column, suggest line chart
+            if (dateCols.length > 0 && numericCols.length > 0) {
+                return 'line';
+            }
+
+            // If only one numeric column, suggest histogram
+            if (numericCols.length === 1 && colCount === 1) {
+                return 'histogram';
+            }
+
+            // If has categorical column and numeric column, suggest bar chart
+            if (numericCols.length > 0 && colCount > 1) {
+                return 'bar';
+            }
+
+            // If has two numeric columns, suggest scatter
+            if (numericCols.length >= 2) {
+                return 'scatter';
+            }
+
+            // Default to bar
+            return 'bar';
+        }
+
+        function populateChartControls(rows) {
+            const columns = Object.keys(rows[0]);
+            const numericCols = detectNumericColumns(rows);
+
+            const xAxisSelect = document.getElementById('xAxisSelect');
+            const yAxisSelect = document.getElementById('yAxisSelect');
+            const groupSelect = document.getElementById('groupSelect');
+
+            xAxisSelect.innerHTML = columns.map(col =>
+                `<option value="${col}">${col}</option>`
+            ).join('');
+
+            yAxisSelect.innerHTML = numericCols.map(col =>
+                `<option value="${col}">${col}</option>`
+            ).join('');
+
+            // Auto-select appropriate columns
+            const dateCols = detectDateColumns(rows);
+            if (dateCols.length > 0) {
+                xAxisSelect.value = dateCols[0];
+            } else if (columns.length > numericCols.length) {
+                // Select first non-numeric column for x-axis
+                const nonNumeric = columns.find(c => !numericCols.includes(c));
+                if (nonNumeric) xAxisSelect.value = nonNumeric;
+            }
+
+            if (numericCols.length > 0) {
+                yAxisSelect.value = numericCols[0];
+            }
+
+            groupSelect.innerHTML = '<option value="">None</option>' +
+                columns.map(col => `<option value="${col}">${col}</option>`).join('');
+        }
+
+        function setChartType(type) {
+            chartType = type;
+            updateChartTypeButtons();
+            switchView('chart');
+            updateChart();
+        }
+
+        function updateChartTypeButtons() {
+            document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === chartType);
+            });
+        }
+
+        function switchView(view) {
+            currentView = view;
+            updateViewToggles();
+
+            const chartContainer = document.getElementById('chartContainer');
+            const resultsContent = document.getElementById('resultsContent');
+
+            if (view === 'chart') {
+                chartContainer.classList.add('visible');
+                resultsContent.style.display = 'none';
+                updateChart();
+            } else {
+                chartContainer.classList.remove('visible');
+                resultsContent.style.display = 'block';
+            }
+        }
+
+        function updateViewToggles() {
+            document.querySelectorAll('.view-toggle').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === currentView);
+            });
+        }
+
+        function updateChart() {
+            if (!chartData || !chartRenderer) return;
+
+            const xAxis = document.getElementById('xAxisSelect').value;
+            const yAxis = document.getElementById('yAxisSelect').value;
+            const groupBy = document.getElementById('groupSelect').value;
+
+            if (!xAxis || !yAxis) return;
+
+            const processedData = {
+                rows: chartData.rows,
+                xAxis,
+                yAxis,
+                groupBy: groupBy || null
+            };
+
+            chartRenderer.setData(processedData, chartType);
+            chartRenderer.resize();
+        }
+
+        function exportChart() {
+            const canvas = document.getElementById('chartCanvas');
+            const link = document.createElement('a');
+            link.download = `chart-${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function renderTableView(rows) {
+            const resultsContent = document.getElementById('resultsContent');
+
+            if (!Array.isArray(rows) || rows.length === 0) {
+                resultsContent.innerHTML = '<div class="empty-state">No results</div>';
+                return;
+            }
+
+            const columns = Object.keys(rows[0]);
+            const table = document.createElement('table');
+            table.innerHTML = `
+                <thead>
+                    <tr>${columns.map(col => `<th>${col}</th>`).join('')}</tr>
+                </thead>
+                <tbody>
+                    ${rows.map(row => `
+                        <tr>${columns.map(col => `<td>${row[col] === null ? 'NULL' : row[col]}</td>`).join('')}</tr>
+                    `).join('')}
+                </tbody>
+            `;
+
+            resultsContent.innerHTML = '';
+            resultsContent.appendChild(table);
         }
 
         function showError(message) {
@@ -2588,6 +1864,13 @@ Chart Hints (add in SQL comment):
                 statusText.textContent = 'Disconnected';
             }
         }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (chartRenderer && currentView === 'chart') {
+                chartRenderer.resize();
+            }
+        });
     </script>
 </body>
 </html>
