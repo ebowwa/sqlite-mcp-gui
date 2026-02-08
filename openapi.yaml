@@ -2,14 +2,53 @@ openapi: 3.0.3
 info:
   title: SQLite MCP GUI API
   description: |
-    REST API for SQLite MCP GUI - A web interface for interacting with SQLite databases.
-    This API provides endpoints for executing queries, listing tables, and retrieving schema information.
+    REST API for SQLite MCP GUI - A modern web-based interface for SQLite databases.
+
+    This API provides endpoints for querying SQLite databases, listing tables, retrieving schema information,
+    and user authentication when enabled.
+
+    ## Authentication
+
+    The API supports multiple authentication methods (controlled by `AUTH_ENABLED` environment variable):
+
+    ### When Authentication is ENABLED:
+    - **JWT Token**: Include in Authorization header as `Bearer <token>`
+    - **Session Cookie**: Automatic with web UI login
+    - **API Key**: Include in `X-API-Key` header (when `API_KEYS_ENABLED=true`)
+    - **Basic Auth**: Include standard HTTP Basic Auth headers (when `BASIC_AUTH_ENABLED=true`)
+
+    ### When Authentication is DISABLED (default):
+    All endpoints are publicly accessible without authentication.
+
+    ## Rate Limiting
+
+    Rate limiting is controlled by the `RATE_LIMIT_ENABLED` environment variable.
+    When enabled, the following limits apply:
+    - 100 requests per 15 minutes per IP address
+    - Authentication endpoints: 10 requests per 15 minutes
+
+    ## Error Responses
+
+    All endpoints may return the following error responses:
+
+    | Status Code | Description |
+    |-------------|-------------|
+    | 400 | Bad Request - Invalid parameters |
+    | 401 | Unauthorized - Authentication required or failed |
+    | 403 | Forbidden - Insufficient permissions |
+    | 404 | Not Found - Resource not found |
+    | 429 | Too Many Requests - Rate limit exceeded |
+    | 500 | Internal Server Error - Server error |
+    | 503 | Service Unavailable - Database connection failed |
+
   version: 1.0.0
   contact:
     name: SQLite MCP GUI
-    license:
-      name: MIT
-      url: https://opensource.org/licenses/MIT
+    url: https://github.com/your-repo/sqlite-mcp-gui
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
 servers:
   - url: http://localhost:3000
     description: Local development server
@@ -22,13 +61,13 @@ servers:
 
 tags:
   - name: Database
-    description: Database operations
+    description: Database query and modification operations
   - name: Tables
     description: Table information and schema
+  - name: Authentication
+    description: User authentication and management
   - name: Health
     description: Health check endpoints
-  - name: Metrics
-    description: Performance and usage metrics
 
 paths:
   /api/query:
@@ -37,9 +76,24 @@ paths:
         - Database
       summary: Execute SQL query
       description: |
-        Executes a SQL query against the specified SQLite database.
-        Supports SELECT, PRAGMA statements and other SQL operations.
+        Execute a SQL query against a SQLite database.
+
+        Supports SELECT, PRAGMA, INSERT, UPDATE, DELETE, and other SQL operations.
+        SELECT and PRAGMA queries return result rows.
+        INSERT, UPDATE, DELETE return the number of affected rows.
+
+        **Security Notes:**
+        - SQL injection is possible if user input is not sanitized
+        - Use parameterized queries when accepting user input
+        - Database file path must be accessible by the server
+        - Requires appropriate permissions when authentication is enabled
       operationId: executeQuery
+      security:
+        - {} # No auth when disabled
+        - BearerAuth: []
+        - ApiKeyAuth: []
+        - BasicAuth: []
+        - CookieAuth: []
       requestBody:
         required: true
         content:
@@ -51,20 +105,26 @@ paths:
                 summary: SELECT query
                 description: Retrieve data from a table
                 value:
-                  dbPath: /path/to/database.db
-                  sql: SELECT * FROM users LIMIT 10
+                  dbPath: /data/users.db
+                  sql: SELECT id, name, email FROM users WHERE active = 1 LIMIT 10
               pragmaQuery:
                 summary: PRAGMA query
                 description: Get database pragma information
                 value:
-                  dbPath: /path/to/database.db
+                  dbPath: /data/users.db
                   sql: PRAGMA table_info(users)
               insertQuery:
                 summary: INSERT query
-                description: Insert new data
+                description: Insert new data (requires write permission)
                 value:
-                  dbPath: /path/to/database.db
+                  dbPath: /data/users.db
                   sql: "INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com')"
+              updateQuery:
+                summary: UPDATE query
+                description: Update existing data (requires write permission)
+                value:
+                  dbPath: /data/users.db
+                  sql: "UPDATE users SET active = 1 WHERE id = 5"
       responses:
         '200':
           description: Query executed successfully
@@ -76,39 +136,54 @@ paths:
                   - $ref: '#/components/schemas/ExecuteResponse'
               examples:
                 selectResponse:
-                  summary: SELECT response
+                  summary: SELECT query result
                   value:
                     success: true
                     rows:
                       - id: 1
                         name: John Doe
                         email: john@example.com
+                        active: 1
                       - id: 2
                         name: Jane Smith
                         email: jane@example.com
+                        active: 1
                     rowCount: 2
                 executeResponse:
-                  summary: INSERT/UPDATE/DELETE response
+                  summary: INSERT/UPDATE/DELETE result
                   value:
                     success: true
                     changes: 1
                     message: Query executed successfully
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
-      security: []
-      x-rate-limit: 100 requests per minute
+      x-rate-limit: 100 requests per 15 minutes
 
   /api/tables:
     post:
       tags:
         - Tables
-      summary: List all tables
+      summary: List database tables
       description: |
-        Retrieves a list of all user-created tables in the specified SQLite database.
-        Excludes SQLite system tables (those starting with sqlite_).
+        List all tables in the SQLite database.
+
+        Excludes SQLite system tables (those starting with 'sqlite_').
+        Returns table names in alphabetical order.
+
+        Requires read permission when authentication is enabled.
       operationId: listTables
+      security:
+        - {}
+        - BearerAuth: []
+        - ApiKeyAuth: []
+        - BasicAuth: []
+        - CookieAuth: []
       requestBody:
         required: true
         content:
@@ -119,10 +194,10 @@ paths:
               listTables:
                 summary: List all tables
                 value:
-                  dbPath: /path/to/database.db
+                  dbPath: /data/users.db
       responses:
         '200':
-          description: Tables retrieved successfully
+          description: Tables listed successfully
           content:
             application/json:
               schema:
@@ -132,16 +207,14 @@ paths:
                   summary: List of tables
                   value:
                     success: true
-                    tables:
-                      - users
-                      - products
-                      - orders
+                    tables: ["orders", "products", "users"]
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
-      security: []
-      x-rate-limit: 100 requests per minute
+      x-rate-limit: 100 requests per 15 minutes
 
   /api/schema:
     post:
@@ -149,9 +222,19 @@ paths:
         - Tables
       summary: Get table schema
       description: |
-        Retrieves the schema information for a specific table, including column names,
-        data types, constraints, and other metadata.
+        Get schema information for a specific table.
+
+        Returns column names, data types, constraints, and other metadata.
+        Uses PRAGMA table_info() to retrieve column details.
+
+        Requires read permission when authentication is enabled.
       operationId: getTableSchema
+      security:
+        - {}
+        - BearerAuth: []
+        - ApiKeyAuth: []
+        - BasicAuth: []
+        - CookieAuth: []
       requestBody:
         required: true
         content:
@@ -162,7 +245,7 @@ paths:
               getSchema:
                 summary: Get table schema
                 value:
-                  dbPath: /path/to/database.db
+                  dbPath: /data/users.db
                   tableName: users
       responses:
         '200':
@@ -194,14 +277,384 @@ paths:
                         name: email
                         type: TEXT
                         notnull: 0
-                        dflt_value: null
+                        dflt_value: "''"
+                        pk: 0
+                      - cid: 3
+                        name: created_at
+                        type: DATETIME
+                        notnull: 1
+                        dflt_value: CURRENT_TIMESTAMP
                         pk: 0
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
-      security: []
-      x-rate-limit: 100 requests per minute
+      x-rate-limit: 100 requests per 15 minutes
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: |
+        Authenticate with username/password and receive a JWT token.
+
+        When authentication is disabled, returns a special anonymous user response.
+
+        The token is also set as a session cookie for web UI usage.
+
+        **Rate Limiting**: 10 requests per 15 minutes per IP
+      operationId: login
+      security:
+        - {} # No authentication required for login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              login:
+                summary: User login
+                value:
+                  username: admin
+                  password: password123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              examples:
+                loginSuccess:
+                  summary: Login successful
+                  value:
+                    success: true
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyXzEyMyIsInVzZXJuYW1lIjoiYWRtaW4iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE2MDk0NTkyMDAsImV4cCI6MTYwOTU0NTYwMH0.signature
+                    user:
+                      id: user_123
+                      username: admin
+                      role: admin
+                authDisabled:
+                  summary: Authentication disabled
+                  value:
+                    success: true
+                    message: Authentication is disabled
+                    user:
+                      id: anonymous
+                      username: anonymous
+                      role: admin
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid username or password
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-rate-limit: 10 requests per 15 minutes
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Clear the session cookie
+      operationId: logout
+      security:
+        - {} # Allow logout even without auth
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Logged out successfully
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: |
+        Get information about the currently authenticated user.
+
+        Returns authentication status, user details, and the authentication method used.
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+        - BasicAuth: []
+        - CookieAuth: []
+      responses:
+        '200':
+          description: User info retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfoResponse'
+              examples:
+                authenticated:
+                  summary: Authenticated user
+                  value:
+                    authenticated: true
+                    user:
+                      id: user_123
+                      username: admin
+                      role: admin
+                      createdAt: '2024-01-01T00:00:00.000Z'
+                      lastLogin: '2024-01-15T10:30:00.000Z'
+                    method: jwt
+                authDisabled:
+                  summary: Authentication disabled
+                  value:
+                    authenticated: false
+                    message: Authentication is disabled
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/change-password:
+    post:
+      tags:
+        - Authentication
+      summary: Change password
+      description: |
+        Change the current user's password.
+
+        Requires the current password for verification.
+      operationId: changePassword
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                  description: Current password for verification
+                newPassword:
+                  type: string
+                  format: password
+                  description: New password to set
+                  minLength: 8
+            examples:
+              changePassword:
+                summary: Change password
+                value:
+                  currentPassword: oldPassword123
+                  newPassword: newPassword456
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Password changed successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Current password is incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Current password is incorrect
+
+  /auth/users:
+    get:
+      tags:
+        - Authentication
+      summary: List users
+      description: |
+        List all users in the system.
+
+        Requires admin role. Password hashes are never exposed.
+      operationId: listUsers
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      responses:
+        '200':
+          description: Users listed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+              example:
+                success: true
+                users:
+                  - id: user_123
+                    username: admin
+                    role: admin
+                    createdAt: '2024-01-01T00:00:00.000Z'
+                    lastLogin: '2024-01-15T10:30:00.000Z'
+                    allowedDatabases: []
+                  - id: user_456
+                    username: readonly_user
+                    role: read-only
+                    createdAt: '2024-01-10T00:00:00.000Z'
+                    lastLogin: '2024-01-14T08:15:00.000Z'
+                    allowedDatabases:
+                      - /data/readonly.db
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+        - Authentication
+      summary: Create user
+      description: |
+        Create a new user account.
+
+        Requires admin role.
+      operationId: createUser
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+                - role
+              properties:
+                username:
+                  type: string
+                  description: Username (must be unique)
+                  minLength: 3
+                  maxLength: 50
+                password:
+                  type: string
+                  format: password
+                  description: User password
+                  minLength: 8
+                role:
+                  type: string
+                  enum: [admin, read-write, read-only]
+                  description: User role
+            examples:
+              createUser:
+                summary: Create new user
+                value:
+                  username: newuser
+                  password: securePassword123
+                  role: read-write
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+              example:
+                success: true
+                user:
+                  id: user_789
+                  username: newuser
+                  role: read-write
+                  createdAt: '2024-01-16T14:20:00.000Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /auth/config:
+    get:
+      tags:
+        - Authentication
+      summary: Get authentication configuration
+      description: |
+        Get public authentication configuration.
+
+        Returns which authentication methods are enabled.
+        Does not expose sensitive configuration data.
+      operationId: getAuthConfig
+      security:
+        - {} # Public endpoint
+      responses:
+        '200':
+          description: Configuration retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                    description: Whether authentication is enabled
+                  methods:
+                    type: object
+                    properties:
+                      jwt:
+                        type: boolean
+                        description: JWT authentication available
+                      apiKeys:
+                        type: boolean
+                        description: API key authentication available
+                      basicAuth:
+                        type: boolean
+                        description: Basic auth available
+                      session:
+                        type: boolean
+                        description: Session cookie auth available
+              example:
+                enabled: true
+                methods:
+                  jwt: true
+                  apiKeys: false
+                  basicAuth: false
+                  session: true
 
   /health:
     get:
@@ -210,8 +663,12 @@ paths:
       summary: Health check
       description: |
         Check if the API server is running and healthy.
+
         Returns the current status and uptime information.
+        No authentication required.
       operationId: healthCheck
+      security:
+        - {}
       responses:
         '200':
           description: Server is healthy
@@ -223,39 +680,6 @@ paths:
                 status: healthy
                 uptime: 3600
                 timestamp: '2026-02-01T12:00:00Z'
-      security: []
-      x-rate-limit: No limit
-
-  /metrics:
-    get:
-      tags:
-        - Metrics
-      summary: API metrics
-      description: |
-        Retrieve usage and performance metrics including request counts,
-        error rates, and response times.
-      operationId: getMetrics
-      responses:
-        '200':
-          description: Metrics retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MetricsResponse'
-              example:
-                requests:
-                  total: 1250
-                  successful: 1200
-                  failed: 50
-                queries:
-                  total: 800
-                  selects: 600
-                  modifications: 200
-                performance:
-                  avgResponseTime: 45
-                  p95ResponseTime: 120
-                  p99ResponseTime: 250
-      security: []
       x-rate-limit: No limit
 
 components:
@@ -264,7 +688,41 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT token authentication (optional, not currently implemented)
+      description: |
+        JWT token authentication.
+
+        Include in Authorization header: `Bearer <token>`
+
+        Tokens are obtained from /auth/login endpoint.
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API key authentication.
+
+        Include in X-API-Key header: `<your-api-key>`
+
+        Only available when API_KEYS_ENABLED=true.
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: |
+        HTTP Basic Authentication.
+
+        Standard base64-encoded username:password.
+
+        Only available when BASIC_AUTH_ENABLED=true.
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+      description: |
+        Session cookie authentication.
+
+        Automatically set by /auth/login endpoint.
+
+        Contains JWT token for authenticated sessions.
 
   schemas:
     QueryRequest:
@@ -277,11 +735,11 @@ components:
           type: string
           format: path
           description: Absolute or relative path to the SQLite database file
-          example: /path/to/database.db
+          example: /data/users.db
         sql:
           type: string
           description: SQL query to execute
-          example: SELECT * FROM users WHERE active = 1
+          example: SELECT * FROM users WHERE active = 1 LIMIT 10
 
     QueryResponse:
       type: object
@@ -289,6 +747,7 @@ components:
         success:
           type: boolean
           description: Indicates if the query was successful
+          example: true
         rows:
           type: array
           description: Array of result rows (for SELECT queries)
@@ -299,6 +758,7 @@ components:
           type: integer
           description: Number of rows returned
           minimum: 0
+          example: 10
 
     ExecuteResponse:
       type: object
@@ -306,13 +766,16 @@ components:
         success:
           type: boolean
           description: Indicates if the execution was successful
+          example: true
         changes:
           type: integer
           description: Number of rows affected (for INSERT/UPDATE/DELETE)
           minimum: 0
+          example: 1
         message:
           type: string
           description: Success message
+          example: Query executed successfully
 
     TablesRequest:
       type: object
@@ -323,7 +786,7 @@ components:
           type: string
           format: path
           description: Absolute or relative path to the SQLite database file
-          example: /path/to/database.db
+          example: /data/users.db
 
     TablesResponse:
       type: object
@@ -331,12 +794,13 @@ components:
         success:
           type: boolean
           description: Indicates if the request was successful
+          example: true
         tables:
           type: array
-          description: List of table names
+          description: List of table names in alphabetical order
           items:
             type: string
-          example: ['users', 'products', 'orders']
+          example: ["orders", "products", "users"]
 
     SchemaRequest:
       type: object
@@ -348,7 +812,7 @@ components:
           type: string
           format: path
           description: Absolute or relative path to the SQLite database file
-          example: /path/to/database.db
+          example: /data/users.db
         tableName:
           type: string
           description: Name of the table to get schema for
@@ -360,9 +824,11 @@ components:
         success:
           type: boolean
           description: Indicates if the request was successful
+          example: true
         table:
           type: string
           description: Name of the table
+          example: users
         columns:
           type: array
           description: Column information
@@ -371,23 +837,116 @@ components:
             properties:
               cid:
                 type: integer
-                description: Column ID
+                description: Column ID (0-based index)
+                example: 0
               name:
                 type: string
                 description: Column name
+                example: id
               type:
                 type: string
                 description: Column data type
+                enum: [INTEGER, TEXT, REAL, BLOB, NUMERIC]
+                example: INTEGER
               notnull:
                 type: integer
                 description: Whether the column has a NOT NULL constraint (1 or 0)
+                enum: [0, 1]
+                example: 1
               dflt_value:
                 type: string
                 nullable: true
                 description: Default value for the column
+                example: null
               pk:
                 type: integer
-                description: Whether the column is part of the primary key (1 or 0)
+                description: Primary key position (0 if not part of PK, 1+ for PK columns)
+                example: 1
+
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          description: Username
+          example: admin
+        password:
+          type: string
+          format: password
+          description: User password
+          example: password123
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        token:
+          type: string
+          description: JWT authentication token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/User'
+        message:
+          type: string
+          description: Additional message (e.g., when auth is disabled)
+
+    UserInfoResponse:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+          description: Whether the user is authenticated
+          example: true
+        user:
+          $ref: '#/components/schemas/User'
+        method:
+          type: string
+          enum: [jwt, api-key, basic, session]
+          description: Authentication method used
+          example: jwt
+        message:
+          type: string
+          description: Message when not authenticated
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique user ID
+          example: user_123
+        username:
+          type: string
+          description: Username
+          example: admin
+        role:
+          type: string
+          enum: [admin, read-write, read-only]
+          description: User role determining permissions
+          example: admin
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: '2024-01-01T00:00:00.000Z'
+        lastLogin:
+          type: string
+          format: date-time
+          description: Last login timestamp
+          example: '2024-01-15T10:30:00.000Z'
+        allowedDatabases:
+          type: array
+          description: |
+            List of allowed database paths.
+            Empty array means all databases are accessible.
+          items:
+            type: string
+          example: []
 
     HealthResponse:
       type: object
@@ -396,57 +955,31 @@ components:
           type: string
           enum: [healthy, degraded, unhealthy]
           description: Health status of the server
+          example: healthy
         uptime:
-          type: integer
+          type: number
           description: Server uptime in seconds
+          example: 3600
         timestamp:
           type: string
           format: date-time
           description: ISO 8601 timestamp of the health check
-
-    MetricsResponse:
-      type: object
-      properties:
-        requests:
-          type: object
-          properties:
-            total:
-              type: integer
-            successful:
-              type: integer
-            failed:
-              type: integer
-        queries:
-          type: object
-          properties:
-            total:
-              type: integer
-            selects:
-              type: integer
-            modifications:
-              type: integer
-        performance:
-          type: object
-          properties:
-            avgResponseTime:
-              type: number
-              description: Average response time in milliseconds
-            p95ResponseTime:
-              type: number
-              description: 95th percentile response time in milliseconds
-            p99ResponseTime:
-              type: number
-              description: 99th percentile response time in milliseconds
+          example: '2026-02-01T12:00:00.000Z'
 
     Error:
       type: object
       properties:
+        success:
+          type: boolean
+          example: false
         error:
           type: string
           description: Error message describing what went wrong
+          example: dbPath and sql are required
         code:
           type: string
           description: Error code for programmatic handling
+          example: MISSING_PARAMETERS
         details:
           type: object
           additionalProperties: true
@@ -462,12 +995,55 @@ components:
           examples:
             missingParameters:
               value:
+                success: false
                 error: dbPath and sql are required
                 code: MISSING_PARAMETERS
             invalidDatabase:
               value:
+                success: false
                 error: Unable to open database file
                 code: INVALID_DATABASE
+            invalidRole:
+              value:
+                success: false
+                error: Invalid role. Must be one of: admin, read-write, read-only
+                code: INVALID_ROLE
+
+    Unauthorized:
+      description: Unauthorized - Authentication required or failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            notAuthenticated:
+              value:
+                success: false
+                error: Authentication required
+                code: AUTH_FAILED
+            invalidCredentials:
+              value:
+                success: false
+                error: Invalid username or password
+                code: INVALID_CREDENTIALS
+
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            insufficientPermissions:
+              value:
+                success: false
+                error: Insufficient permissions
+                code: AUTHZ_FAILED
+            adminRequired:
+              value:
+                success: false
+                error: Admin role required
+                code: ADMIN_REQUIRED
 
     InternalServerError:
       description: Internal server error
@@ -478,11 +1054,11 @@ components:
           examples:
             databaseError:
               value:
+                success: false
                 error: SQL logic error: no such table: users
                 code: DATABASE_ERROR
             executionError:
               value:
+                success: false
                 error: SQL logic error: near "FROM": syntax error
                 code: EXECUTION_ERROR
-
-security: []
